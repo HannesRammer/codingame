@@ -13,10 +13,30 @@ List takenDigs = [];
 num enemyConcentrationCount = 3;
 bool activateStriker = false;
 bool activateStrikerValue = false;
-Map chargedEnemy = {"0":false,"1":false,"2":false,"3":false,"4":false,"5":false,"6":false,"7":false,"8":false,"9":false,"10":false,"11":false,"12":false,"13":false,"14":false};
+Map chargedEnemy = {
+    "0": false,
+    "1": false,
+    "2": false,
+    "3": false,
+    "4": false,
+    "5": false,
+    "6": false,
+    "7": false,
+    "8": false,
+    "9": false,
+    "10": false,
+    "11": false,
+    "12": false,
+    "13": false,
+    "14": false
+};
 num strikerCounter = 0;
 List trapOrRadar = new List();
 //List radarPos= [[9,7],[14,7],[5,12],[19,7],[6,3],[10,8],[14,4],[15,11],[20,4],[20,7],[20,11],[25,7],[25,3],[6,3],[25,11],[12,3]];
+dt(String text) {
+    //stderr.writeln(text);
+}
+
 List radarPosTest = [
 
     [13, 5],
@@ -32,18 +52,23 @@ List radarPosTest = [
 
 ];
 List radarPos = [
+    [5, 9],
+    [9, 4],
+
+    [14, 11],
+    [17, 6],
+
+    [23, 12],
+    [15, 2],
+
+    [21, 2],
+    [10, 7],
+    [26, 6],
     [4, 6],
+
     [6, 2],
     [5, 11],
-    [9, 7],
 
-    [13, 5],
-    [14, 11],
-    [19, 8],
-    [21, 2],
-    [23, 12],
-    [26, 6],
-    [1, 0],
     [1, 14]
 ];
 List oldRadarPos = [
@@ -134,27 +159,27 @@ List oldhunterFieldBottom = [
 ];
 num X = 0;
 List hunterFieldTop = [
-    [1+X, 6],
-    [1+X, 5],
-    [2+X, 5],
-    [2+X, 4],
-    [2+X, 3],
-    [3+X, 3]
+    [1 + X, 6],
+    [1 + X, 5],
+    [2 + X, 5],
+    [2 + X, 4],
+    [2 + X, 3],
+    [3 + X, 3]
 ];
 
 List hunterFieldMiddle = [
-    [1+X, 7],
-    [2+X, 7],
-    [1+X, 8],
-    [2+X, 8],
-    [2+X, 9]
+    [1 + X, 7],
+    [2 + X, 7],
+    [1 + X, 8],
+    [2 + X, 8],
+    [2 + X, 9]
 ];
 
 List hunterFieldBottom = [
-    [3+X, 9],
-    [2+X, 10],
-    [2+X, 11],
-    [3+X, 11]
+    [3 + X, 9],
+    [2 + X, 10],
+    [2 + X, 11],
+    [3 + X, 11]
 ];
 List enemyRadar = List();
 List myTraps = List();
@@ -173,7 +198,8 @@ List oreList = List();
 Map focusedOre = Map();
 List startGoal = List();
 int scoutCounter = 0;
-int oreLimit = 30;
+int sniperCounter = 0;
+int oreLimit = 10;
 List safeYPosInFirstRow = List();
 int radarCooldown = 0;
 int trapCooldown = 0;
@@ -201,18 +227,26 @@ bool xIsXAndYIsY(List pos1, List pos2) {
 }
 
 List enemyRadarGuess = List();
-removeEnemyRadar(){
-    for(int i=0;i< enemyDigs.length;i++){
+
+removeEnemyRadar() {
+    dt("-----------Remove nemy radar");
+
+    for (int i = 0; i < enemyDigs.length; i++) {
         List enemyDig = enemyDigs[i];
-        for(int j=0;j< areaScans.length;j++){
-            if(enemyDig[0]>areaScans[j] && enemyDig[1]>=yRange[j][0] && enemyDig[1]<=yRange[j][1]){
+        for (int j = 0; j < areaScans.length; j++) {
+            dt("enemyDig :${enemyDig}");
+            dt("areaScans[j] :${areaScans[j]}");
+
+            if (enemyDig[0] > areaScans[j] && enemyDig[1] >= yRange[j][0] && enemyDig[1] <= yRange[j][1]) {
                 enemyRadarGuess.add(enemyDig);
-                areaScans[j] = enemyDig[0]+3;
+                areaScans[j] = enemyDig[0] + 3;
             }
         }
     }
-
 }
+
+List lastPosition = [];
+List enemyItems = [];
 
 void main() {
     List inputs;
@@ -221,6 +255,8 @@ void main() {
     int height = int.parse(inputs[1]); // size of the map
     round = 0;
     enemyDigs = List();
+    List robotsWithItem = [];
+
     // game loop
     while (true) {
         countEnemyInRows = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
@@ -228,15 +264,14 @@ void main() {
         enemyDeathCount = Map();
         safeYPosInFirstRow = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14];
         allDigs = List();
-        takenDigs = [];
+        //todo test
+        //takenDigs = [];
         luckyPos = List();
-        luckyTrapPos= List();
+        luckyTrapPos = List();
         //enemyConcentration = -1;
         //focusedOre = Map();
         dmgArea = List();
-        stderr.writeln("scoutCounter:$scoutCounter");
-
-
+        dt("scoutCounter:$scoutCounter");
 
         oreList = List();
         inputs = stdin.readLineSync().split(' ');
@@ -244,24 +279,23 @@ void main() {
         int opponentScore = int.parse(inputs[1]);
         for (int i = 0; i < height; i++) {
             inputs = stdin.readLineSync().split(' ');
-            //stderr.writeln('$inputs');
+            //dt('$inputs');
             for (int j = 0; j < width; j++) {
                 String ore = inputs[2 * j]; // amount of ore or "?" if unknown
                 int hole = int.parse(inputs[2 * j + 1]); // 1 if cell has a hole
                 if (j == 1 && hole == 1) {
-                    //safeYPosInFirstRow.remove(i-1);
+                    safeYPosInFirstRow.remove(i - 1);
 
                     safeYPosInFirstRow.remove(i);
-                    //safeYPosInFirstRow.remove(i+1);
-
+                    safeYPosInFirstRow.remove(i + 1);
                 }
                 if (ore != "?" && ore != "0") {
                     // && hole == 0){
-                    oreList.add([j, i]);
+                    oreList.add([j, i, ore]);
                 }
                 if (ore == "?" && hole == 0) {
                     // && hole == 0){
-                    if (j >= 5 && j < 25 && i >= 5 && i < 10) {
+                    if (j >= 5 && j < 27 && i >= 2 && i < 12) {
                         luckyPos.add([j, i]);
                     }
                     if (j >= 1 && j < 3 && i >= 0 && i < 14) {
@@ -275,10 +309,10 @@ void main() {
                 mapWithStateOfHole["${j}_${i}"] = hole;
             }
         }
-        //  stderr.writeln('aFTER safeYPosInFirstRow:$safeYPosInFirstRow');
+        //  dt('aFTER safeYPosInFirstRow:$safeYPosInFirstRow');
         List foundDigs = [false, false, false];
 
-        stderr.writeln("possibleEnemyRadar:$possibleEnemyRadar");
+        dt("possibleEnemyRadar:$possibleEnemyRadar");
 
         inputs = stdin.readLineSync().split(' ');
         int entityCount = int.parse(inputs[0]); // number of entities visible to you
@@ -296,10 +330,10 @@ void main() {
             int item = int.parse(inputs[4]); // if this entity is a robot, the item it is carrying (-1 for NONE, 2 for RADAR, 3 for TRAP, 4 for ORE)
 
             if (type == 2) {
-                //stderr.writeln("####ENTITY: x:$x y:$y id:$id type:RADAR");
+                //dt("####ENTITY: x:$x y:$y id:$id type:RADAR");
 
             } else if (type == 3) {
-                //stderr.writeln("####ENTITY: x:$x y:$y id:$id type:TRAP");
+                //dt("####ENTITY: x:$x y:$y id:$id type:TRAP");
             }
 
             if (item == 3) {
@@ -329,7 +363,7 @@ void main() {
                     tmpBot.x = x;
                     tmpBot.y = y;
                     tmpBot.item = item;
-                    //stderr.writeln('myRobot $id AT x:$x y:$y item:$item');
+                    //dt('myRobot $id AT x:$x y:$y item:$item');
 
                     if (x != -1) {
                         validRobotIds.add("$id");
@@ -342,63 +376,63 @@ void main() {
                     tmpBot.x = x;
                     tmpBot.y = y;
                     tmpBot.item = item;
-
+                    enemyRobots["$id"] = tmpBot;
                     //enemyYs.add(y);
                     if (y > -1) {
                         countEnemyInRows[y] += 1;
                     }
-                    //stderr.writeln('enemy $id AT x:$x y:$y item:$item');
+                    //dt('enemy $id AT x:$x y:$y item:$item');
                     //SCAN FOR ENEMY DIG
-                    List lastPosition = lastEnemyPositions["$id"];
+                    lastPosition = lastEnemyPositions["$id"];
+                    //  if(lastPosition[0] == 0 && x == 0 ){
+                    //robot gets item
+                    //      robotsWithItem.add(tmpBot);
+                    //  }
                     if (lastPosition[0] == x && lastPosition[1] == y) {
-                        if(x==0){//charge robot with radar or trap REMEMBER first charge at 0 charge second is dropping
+                        //robot digs item
+                        if (x == 0) { //charge robot with radar or trap REMEMBER first charge at 0 charge second is dropping
+                            stderr.writeln('robot receives item');
                             chargedEnemy["${id}"] = true;
-                        }else if(chargedEnemy["${id}"] ==true && x!=0){
-
-
+                        } else if (chargedEnemy["${id}"] == true && x != 0) {
+                            stderr.writeln('robot digs item');
+                            enemyItems.add([x,y]);
                             for (List posStateList in [
                                 [x, y],
                                 [x - 1, y],
-                                [x + 1, y],
+                                [x+1, y],
                                 [x, y - 1],
                                 [x, y + 1]
                             ]) {
-
-
-                                stderr.writeln('###add all surroundings to enemyDig:$posStateList');
-                                stderr.writeln('chargedEnemy:$chargedEnemy');
-                                if(chargedEnemy["${id}"]  == true && posStateList[0] >=1){
-                                    enemyDigs.add(posStateList);
+                                if (posStateList[0] >= 1 && !posInsideList(posStateList, enemyItems)) {
+                                    enemyItems.add(posStateList);
+                                    stderr.writeln('!!!!!!!!!1ENEMY ITEM AT:$posStateList');
                                 }
-
+                                dt('chargedEnemy:$chargedEnemy');
                             }
                             chargedEnemy["${id}"] = false;
                         }
-
                     }
                     lastEnemyPositions["$id"] = [x, y];
-                    for (String posState in ["${x}_${y}", "${x - 1}_${y}", "${x + 1}_${y}", "${x}_${y - 1}", "${x}_${y + 1}"]) {
-                        lastStateOfEnemySurroundings[posState] = mapWithStateOfHole[posState];
-                    }
+
                 }
             }
-            //stderr.writeln('robots:$robots');
+            //dt('robots:$robots');
         }
-
-
-        for(num i=0;i<myActiveTraps.length;i++){
+        stderr.writeln('!!!!!!!!!1ENEMY ITEM AT:$enemyItems');
+        for (num i = 0; i < myActiveTraps.length; i++) {
             bool trapStillActive = false;
-            for(List trap in myTraps){
-                if(xIsXAndYIsY(myActiveTraps[i],trap)){
+            for (List trap in myTraps) {
+                if (xIsXAndYIsY(myActiveTraps[i], trap)) {
                     trapStillActive = true;
                 }
             }
-            if(!trapStillActive){
+            if (!trapStillActive) {
                 myActiveTraps.removeAt(i);
             }
         }
-        for(List activeTrap in myActiveTraps ){
+        for (List activeTrap in myActiveTraps) {
             dmgArea.add(activeTrap);
+            stderr.writeln("activeTrap $activeTrap");
             num activeTrapX = activeTrap[0];
             num activeTrapY = activeTrap[1];
             dmgArea.add([activeTrapX - 1, activeTrapY]);
@@ -406,6 +440,10 @@ void main() {
             dmgArea.add([activeTrapX, activeTrapY - 1]);
             dmgArea.add([activeTrapX, activeTrapY + 1]);
 
+            dmgArea.add([activeTrapX - 1, activeTrapY-1]);
+            dmgArea.add([activeTrapX + 1, activeTrapY-1]);
+            dmgArea.add([activeTrapX-1, activeTrapY + 1]);
+            dmgArea.add([activeTrapX + 1 , activeTrapY + 1]);
         }
 
         for (String enemyKey in enemyRobots.keys.toList()) {
@@ -421,15 +459,16 @@ void main() {
                 myDeathCount['${tmpRobot.id}'] = true;
             }
         }
-        stderr.writeln('DMGAREA:$dmgArea');
-        stderr.writeln('myDeathCount:$myDeathCount');
-        stderr.writeln('enemyDeathCount:$enemyDeathCount');
-        stderr.writeln('myTraps:$myTraps');
+        dt('DMGAREA:$dmgArea');
+        dt('myDeathCount:$myDeathCount');
+        dt('enemyDeathCount:$enemyDeathCount');
+        dt('myTraps:$myTraps');
 
-        stderr.writeln("validRobotIds:$validRobotIds ");
+        dt("validRobotIds:$validRobotIds ");
         scoutCounter = 0;
         hunterCounter = 0;
         strikerCounter = 0;
+        sniperCounter = 0;
         for (int i = 0; i < validRobotIds.length; i++) {
             Robot bot = robots[validRobotIds[i]];
             if (bot.role == "SCOUT") {
@@ -441,10 +480,14 @@ void main() {
             if (bot.role == "STRIKER") {
                 strikerCounter += 1;
             }
+            if (bot.role == "SNIPER") {
+                sniperCounter += 1;
+            }
         }
-        stderr.writeln("hunterCounter:$hunterCounter ");
-        stderr.writeln("strikerCounter:$strikerCounter ");
-        stderr.writeln("scoutCounter:$scoutCounter ");
+        dt("hunterCounter:$hunterCounter ");
+        dt("strikerCounter:$strikerCounter ");
+        dt("scoutCounter:$scoutCounter ");
+        stderr.writeln("sniperCounter:$sniperCounter ");
 
         if (enemyConcentration == -1) {
             for (int i = 1; i < countEnemyInRows.length - 1; i++) {
@@ -467,9 +510,8 @@ void main() {
             }
         }
 
-
         //removeEnemyRadar();
-        //stderr.writeln("enemyRadarGuess:$enemyRadarGuess");
+        //dt("enemyRadarGuess:$enemyRadarGuess");
 
         var botKeys = robots.keys.toList();
         round += 1;
@@ -478,17 +520,23 @@ void main() {
             Robot bot = robots[botKeys[i]];
             /*if(round == 1){
                 scoutCounter=1;
-                stderr.writeln('setting agent role ${agents[i]}');
+                dt('setting agent role ${agents[i]}');
                 bot.role = agents[i];
             }*/
-            //stderr.writeln('radarPos not empty:${radarPos.isNotEmpty} oreList.length:${oreList.length} scoutCounter: ${scoutCounter}');
-            if (bot.role == "MINER" && radarPos.isNotEmpty && validOreList.length < oreLimit && scoutCounter < 2 && bot.x != -1) {
-                activateScoutClosestToBase();
+            dt('bot.role == ${bot.role} radarPos not empty:${radarPos.isNotEmpty} oreList.length:${oreList.length} scoutCounter: ${scoutCounter}');
+            if (bot.role == "MINER" && radarPos.isNotEmpty && validOreList.length < oreLimit && scoutCounter < 1 && bot.x != -1) {
+                dt('bot $bot radarPos not empty:${radarPos.isNotEmpty} oreList.length:${oreList.length} scoutCounter: ${scoutCounter}');
 
+                activateScoutClosestToBase();
             }
+            if (false && bot.role == "MINER" && sniperCounter < 1 && bot.x != -1) {
+                stderr.writeln("switch to sniper");
+                bot.addSniper();
+            }
+
             /*if (activateStriker) {
         if (bot.role != "SCOUT" &&hunterField.isNotEmpty && strikerCounter == 0 && bot.x != -1) {
-          stderr.writeln("!!!!!!!!!!!!!!!!activateStriker");
+          dt("!!!!!!!!!!!!!!!!activateStriker");
           bot.role = "STRIKER";
           strikerCounter = 1;
         }
@@ -496,18 +544,18 @@ void main() {
 
       }*/
 
-/*      if (validRobotIds.length > 4 &&  enemyConcentration > -1 && round >= 20 && bot.role != "SCOUT" */
-            /*&&hunterField.isNotEmpty*/
-            /*&& hunterCounter == 0 && bot.x != -1) {*/
-            /*bot.role = "HUNTER";*/
-            /*hunterCounter = 1;*/
-            /*}*/
+            if (validRobotIds.length > 4 && enemyConcentration > -1 && round < 20 && bot.role != "SCOUT"
+                /*&&hunterField.isNotEmpty*/
+                && hunterCounter == 0 && bot.x != -1) {
+//            bot.role = "HUNTER";
+//            hunterCounter = 1;
+            }
             print(bot.act());
         }
         // for (int i = 0; i < 4/*5*/; i++) {
 
         // Write an action using print()
-        // To debug: stderr.writeln('Debug messages...');
+        // To debug: dt('Debug messages...');
 
         //        print('WAIT'); // WAIT|MOVE x y|DIG x y|REQUEST item
         //  }
@@ -532,7 +580,7 @@ num getMDistance(List me, List entity) {
 List getNewDistanceInlineIfCloser(List myRobot, List goal, num shortestDistance, List nearestPoint) {
     num tmpDistance = getDistance([myRobot[0], myRobot[1]], goal);
     if (tmpDistance < shortestDistance) {
-        // stderr.writeln('not in focus already');
+        // dt('not in focus already');
         shortestDistance = tmpDistance;
         nearestPoint = goal;
     }
@@ -543,15 +591,16 @@ List getBestPos(List pos, List posList) {
     num shortestDistance = 9999;
     List nearestPoint = List();
     for (List tmpPos in posList) {
-        bool isEnemyDig = false;//posInsideList(tmpPos, enemyDigs);
-        bool isTrap = posInsideList(tmpPos, myActiveTraps);
-        if (!isEnemyDig && !isTrap) {
+        bool isEnemyDig = posInsideList(tmpPos, enemyDigs);
+        bool isEnemyItem = posInsideList(tmpPos, enemyItems);
+        bool isTrap = posInsideList(tmpPos, dmgArea);
+        if (!isEnemyItem && !isEnemyDig && !isTrap) {
             List distanceSet = getNewDistanceInlineIfCloser(
-                    pos,
-                    //[0, pos[1]],
-                    tmpPos,
-                    shortestDistance,
-                    nearestPoint);
+                //pos,
+                [0, pos[1]],
+                        tmpPos,
+                        shortestDistance,
+                        nearestPoint);
             shortestDistance = distanceSet[0];
             nearestPoint = distanceSet[1];
         }
@@ -559,32 +608,40 @@ List getBestPos(List pos, List posList) {
 
     return nearestPoint;
 }
-activateScoutClosestToBase(){
+
+activateScoutClosestToBase() {
     int closestPos = 99999;
     Robot closestBot = null;
     var botKeys = robots.keys.toList();
     // List agents = ["SCOUT","MINER","MINER","MINER","MINER"];
     for (int i = 0; i < botKeys.length; i++) {
         Robot bot = robots[botKeys[i]];
-        if(bot.x <closestPos){
+        if (bot.x != -1 && bot.x < closestPos) {
             closestPos = bot.x;
             closestBot = bot;
         }
-
     }
 
     closestBot.switchToScout();
-
 }
 
 bool posInsideList(List pos, List posList) {
     bool isInsideList = false;
-    for (List listPos in posList) {
-        if (xIsXAndYIsY(pos, listPos)) {
-            isInsideList = true;
-            break;
+    if (pos.isNotEmpty) {
+        for (List listPos in posList) {
+            if (listPos.isNotEmpty) {
+                if (xIsXAndYIsY(pos, listPos)) {
+                    isInsideList = true;
+                    break;
+                }
+            } else {
+                //dt("______CHECK WHY listpos EMPTY ARRAY ????");
+            }
         }
+    } else {
+        //dt("______CHECK WHY EMPTY ARRAY ????");
     }
+
     return isInsideList;
 }
 
@@ -603,6 +660,7 @@ class Robot {
     bool returnOre = false;
 
     bool getEnemyPos = true;
+    //  bool getEnemyPos = true;
 
     bool goToMarkingPos = true;
     bool markWithDig = false;
@@ -634,24 +692,25 @@ class Robot {
     }
 
     List getClosestOre() {
-        stderr.writeln('getClosestOre');
+        dt('getClosestOre');
         num shortestDistance = 9999;
         List nearestPoint = List();
         List keys = focusedOre.keys.toList();
-        stderr.writeln('focusedOre : $focusedOre');
-        stderr.writeln('focusedOre : ${focusedOre[id]}');
-        //stderr.writeln('enemyDigs : $enemyDigs');
+        dt('focusedOre : $focusedOre');
+        dt('focusedOre : ${focusedOre[id]}');
+        //dt('enemyDigs : $enemyDigs');
         validOreList = List();
         for (int i = 0; i < oreList.length; i++) {
             List ore = oreList[i];
-            //stderr.writeln('shortestOreDistance = $shortestDistance');
+            //dt('shortestOreDistance = $shortestDistance');
             List tmpList = List();
             tmpList = enemyDigs;
-            bool isEnemyDig =false;// posInsideList(ore, tmpList);
+            bool isEnemyDig = posInsideList(ore, tmpList);
+            bool isEnemyItem = posInsideList(ore, enemyItems );
 
-            bool isTrap = posInsideList(ore, myActiveTraps);
-            bool isTaken = posInsideList(ore,takenDigs);
-            if (!isEnemyDig && !isTrap && !isTaken) {
+            bool isTrap = posInsideList(ore, dmgArea);
+            bool isTaken = posInsideList(ore, takenDigs);
+            if (!isEnemyItem && !isEnemyDig && !isTrap && !isTaken) {
                 validOreList.add(oreList[i]);
             }
         }
@@ -659,19 +718,18 @@ class Robot {
 
         List focusedPos = focusedOre[id];
 
-        if(focusedPos == null || focusedPos == [] || focusedPos != null && focusedPos.isNotEmpty && !posInsideList(focusedPos, oreList)){
+        if (focusedPos == null || focusedPos == [] || focusedPos != null && focusedPos.isNotEmpty && !posInsideList(focusedPos, oreList)) {
             findClosestOre = true;
         }
-        stderr.writeln('focusPos1 :$focusedPos ');
+        dt('focusPos1 :$focusedPos ');
         if (focusedPos != null && focusedPos.isNotEmpty) {
-            stderr.writeln('focusPos2 :$focusedPos ');
+            dt('focusPos2 :$focusedPos ');
             nearestPoint = focusedPos;
         } else {
             findClosestOre = true;
         }
         if (findClosestOre) {
             for (List pos in validOreList) {
-
                 List distanceSet = getNewDistanceInlineIfCloser(
                         [x, y],
                         //[0, pos[1]],
@@ -683,19 +741,88 @@ class Robot {
             }
         }
         focusedOre[id] = nearestPoint;
-        stderr.writeln('closestOre found : $nearestPoint');
+        dt('nearest be4 pil : ${nearestPoint} taken $takenDigs');
+        bool pil = posInsideList(nearestPoint, takenDigs);
+        dt('pil : $pil');
+        if (!pil) {
+            takenDigs.add(nearestPoint);
+        }
+        dt('takenDigs1 : $takenDigs');
+        dt('takenDigs orePos : ${nearestPoint}');
+        return nearestPoint;
+    }
+
+    List getClosestOre2() {
+        stderr.writeln('getClosestOre2');
+        stderr.writeln('dmgArea $dmgArea');
+        num shortestDistance = 9999;
+        List nearestPoint = List();
+        List keys = focusedOre.keys.toList();
+        dt('focusedOre : $focusedOre');
+        dt('focusedOre : ${focusedOre[id]}');
+        //dt('enemyDigs : $enemyDigs');
+        validOreList = List();
+        for (int i = 0; i < oreList.length; i++) {
+            List ore = oreList[i];
+            //dt('shortestOreDistance = $shortestDistance');
+            List tmpList = List();
+            tmpList = enemyDigs;
+            bool isEnemyDig = posInsideList(ore, tmpList);
+            bool isEnemyItem = posInsideList(ore, enemyItems);
+
+            bool isTrap = posInsideList(ore, dmgArea);
+            bool isTaken = posInsideList(ore, takenDigs);
+            if ((ore[2] == "2" /*|| ore[2] == "3" */)&&!isEnemyItem  && !isEnemyDig && !isTrap && !isTaken) {
+                validOreList.add(oreList[i]);
+            }
+        }
+        bool findClosestOre = false;
+
+        List focusedPos = focusedOre[id];
+
+        if (focusedPos == null || focusedPos == [] || focusedPos != null && focusedPos.isNotEmpty && !posInsideList(focusedPos, oreList)) {
+            findClosestOre = true;
+        }
+        dt('focusPos1 :$focusedPos ');
+        if (focusedPos != null && focusedPos.isNotEmpty) {
+            dt('focusPos2 :$focusedPos ');
+            nearestPoint = focusedPos;
+        } else {
+            findClosestOre = true;
+        }
+        if (findClosestOre) {
+            for (List pos in validOreList) {
+                List distanceSet = getNewDistanceInlineIfCloser(
+                        [x, y],
+                        //[0, pos[1]],
+                        pos,
+                        shortestDistance,
+                        nearestPoint);
+                shortestDistance = distanceSet[0];
+                nearestPoint = distanceSet[1];
+            }
+        }
+        focusedOre[id] = nearestPoint;
+        dt('nearest be4 pil : ${nearestPoint} taken $takenDigs');
+        bool pil = posInsideList(nearestPoint, takenDigs);
+        dt('pil : $pil');
+        if (!pil) {
+            takenDigs.add(nearestPoint);
+        }
+        dt('takenDigs1 : $takenDigs');
+        dt('takenDigs orePos : ${nearestPoint}');
         return nearestPoint;
     }
 
     List getOreClosestToBase() {
-        stderr.writeln('getOreClosestToBase');
-        stderr.writeln('focusedOre : ${focusedOre[id]}');
-        stderr.writeln('focusedOre : ${focusedOre}');
+        dt('getOreClosestToBase');
+        dt('focusedOre : ${focusedOre[id]}');
+        dt('focusedOre : ${focusedOre}');
         validOreList = List();
         for (int i = 0; i < oreList.length; i++) {
             List ore = oreList[i];
 
-            bool isTaken = posInsideList(ore,takenDigs);
+            bool isTaken = posInsideList(ore, takenDigs);
             if (!isTaken) {
                 validOreList.add(oreList[i]);
             }
@@ -703,13 +830,13 @@ class Robot {
         int distanceFromBase = 999;
         List foundOre = [];
         for (List pos in validOreList) {
-            if (pos[0]< distanceFromBase) {
+            if (pos[0] < distanceFromBase) {
                 distanceFromBase = pos[0];
                 foundOre = pos;
             }
         }
         focusedOre["$id"] = foundOre;
-        stderr.writeln('closestOre found : $foundOre');
+        dt('closestOre found : $foundOre');
         return foundOre;
     }
 
@@ -719,10 +846,10 @@ class Robot {
         if (x == -1) {
             action = "WAIT DEAD";
         } else {
-            stderr.writeln('######################################################');
-            stderr.writeln('############start action for Robot $id ###############');
+            dt('######################################################');
+            dt('############start action for Robot $id ###############');
             if (startGoal.isNotEmpty) {
-                action = "MOVE ${startGoal[0] + 2} ${y + 2} STARTGOAL";
+                action = "MOVE ${startGoal[0] + 1} ${y + 1} STARTGOAL";
             } else {
                 action = "WAIT manual";
                 if (true) {
@@ -736,16 +863,16 @@ class Robot {
                             myDigs.add([x, y]);
                         }
                     } else {
-                        switchToMiner;
+                        switchToMiner();
                     }
                 }
             }
 
-            stderr.writeln('x:$x y:$y role:$role');
+            dt('x:$x y:$y role:$role');
 
-            stderr.writeln('safeYPosInFirstRow:$safeYPosInFirstRow');
+            dt('safeYPosInFirstRow:$safeYPosInFirstRow');
 
-            //stderr.writeln('enemyDigs:$enemyDigs');
+            //dt('enemyDigs:$enemyDigs');
             int safeY = 0;
             int bestY = 0;
 
@@ -758,7 +885,7 @@ class Robot {
                     if (tmpDistance <= distanceY) {
                         distanceY = tmpDistance;
                         bestY = safeYPosInFirstRow[i];
-                        //stderr.writeln('bestY:$bestY');
+                        //dt('bestY:$bestY');
                     }
                 }
             } else {
@@ -766,21 +893,21 @@ class Robot {
             }
             //safeYPosInFirstRow.remove(bestY);
             if (role == "SCOUT") {
-                stderr.writeln('scout');
+                dt('scout');
                 //1.check if radar spot is free
                 if (radarPos.isNotEmpty && validOreList.length < oreLimit) {
                     // if(radarPos.isNotEmpty){
                     //2.GoTo headquater
-                    stderr.writeln('check if radar spot is free');
+                    dt('check if radar spot is free');
                     if (getRadar) {
                         if (x > 0) {
                             //if not at headquater
-                            stderr.writeln('GoTo headquater');
-                            action = "MOVE 0 $bestY GOTO HEADQUATER";
+                            dt('GoTo headquater');
+                            action = "MOVE 0 $y GOTO HEADQUATER";
                         } else {
                             //if at headquater
                             //3.Get Radar
-                            stderr.writeln('Get Radar');
+                            dt('Get Radar');
                             if (radarCooldown == 0) {
                                 action = "REQUEST RADAR GET RADAR";
                                 getRadar = false;
@@ -793,12 +920,12 @@ class Robot {
                     }
                     if (item == 2 && buryRadar) {
                         List goalPos = radarPos[0];
-                        stderr.writeln('BURY RADAR AT $goalPos');
+                        dt('BURY RADAR AT $goalPos');
                         //4.Get position to place radar
                         bool isBadPos = posInsideList(goalPos, enemyDigs);
                         if (isBadPos) {
-                            goalPos = getBestPos(goalPos, luckyPos);
-
+                            goalPos = getBestPos([x, y], luckyPos);
+                            dt('goalPos : $goalPos');
                         }
 
                         if (x != goalPos[0] || y != goalPos[1]) {
@@ -807,10 +934,10 @@ class Robot {
                             //startGoal = goalPos;
                         } else {
                             //5.Bury Radar
-                            action = "DIG $x $y BURY RADAR";
+                            action = "DIG ${x} $y BURY RADAR";
                             myDigs.add([x, y]);
                             radarPos.removeAt(0);
-                            stderr.writeln('radarPos : $radarPos');
+                            dt('radarPos : $radarPos');
                             getRadar = true;
                             buryRadar = false;
                             switchToMiner();
@@ -821,33 +948,39 @@ class Robot {
                     switchToMiner();
                 }
             } else if (role == "MINER") {
-                stderr.writeln('miner');
+                dt('miner');
                 //1.get Closest ore pos
                 if (item == 4) {
                     if (x != 0) {
                         //if not at headquater
-                        stderr.writeln('goTo headquater');
+                        dt('goTo headquater');
                         action = "MOVE 0 $bestY RETURN ORE";
                     } else {
                         action = "WAIT again ;)";
                     }
                 } else {
-                    stderr.writeln('check if found ore');
+                    dt('check if found ore');
                     if (oreList.isNotEmpty) {
                         if (getOre) {
-                            List orePos = getClosestOre();
+                            List orePos =[];
+                            if (item == 3) {
+                                orePos = getClosestOre2();
+                            }else{
+                                orePos = getClosestOre();
+                            }
+
+
                             //List orePos = getOreClosestToBase();
                             if (orePos.isNotEmpty) {
-                                takenDigs.add(orePos);
                                 if (x != (orePos[0] ) || y != orePos[1]) {
                                     //if not at ore
                                     if (x == 0) {
-                                        if (false && round < 100 && item == -1 && trapCooldown == 0) {
-                                            stderr.writeln('miner load trap');
+                                        if (round > 5 && item == -1 && trapCooldown == 0) {
+                                            dt('miner load trap');
                                             action = "REQUEST TRAP RadarMINer";
-                                            trapCooldown = 99;
+                                            trapCooldown = 200;
                                         } else if (false && round > 100 && item == -1 && radarCooldown == 0) {
-                                            stderr.writeln('miner load radar');
+                                            dt('miner load radar');
                                             action = "REQUEST RADAR GET RADAR";
                                             radarCooldown = 99;
                                         } else {
@@ -859,11 +992,22 @@ class Robot {
                                 } else {
                                     //if at ore//3.Get Ore
                                     if (item == 3) {
-                                        myActiveTraps.add([x , y]);
+                                        myActiveTraps.add([x, y]);
+                                        enemyItems.add([x,y]);
                                     }
-                                    stderr.writeln('Get Ore robot:$id');
-                                    action = "DIG ${x } $y DIG ORE";
-                                    myDigs.add([x , y]);
+                                    dt('Get Ore robot:$id');
+                                    action = "DIG ${x} $y DIG ORE";
+                                    myDigs.add([x, y]);
+                                    dt('takenDigsBe4 remove : $takenDigs');
+                                    dt('takenDigs xy : ${[x, y]}');
+                                    int index = getIndexOfPositionInList([x, y], takenDigs);
+                                    dt('index: $index');
+                                    if (index > -1) {
+                                        takenDigs.removeAt(index);
+                                    }
+                                    focusedOre[id] = [];
+
+                                    dt('takenDigsafter remove : $takenDigs');
                                     getOre = false;
                                     returnOre = true;
                                 }
@@ -875,7 +1019,7 @@ class Robot {
                         }
                         if (item == -1 && returnOre) {
                             //5.Bury Radar
-                            stderr.writeln('Ore Returned');
+                            dt('Ore Returned');
                             getOre = true;
                             returnOre = false;
                         }
@@ -883,15 +1027,31 @@ class Robot {
                         //switch to miner
                         switchToMiner();
                     }
-                    stderr.writeln('item:$item ');
+                    dt('item:$item ');
                 }
-            } else if (role == "HUNTER") {
-                stderr.writeln('hunter');
+            } else if (role == "SNIPER") {
+                stderr.writeln("Im the Sniper, enemy Items ${enemyItems.length}");
+                if (enemyItems.length > 0) {
+                    if (x != (enemyItems[0][0]) || y != enemyItems[0][1]) {
+                        stderr.writeln('move TO POSSIBLE RADAR FOR RADAR');
+
+                        action = "MOVE ${enemyItems[0][0] } ${enemyItems[0][1]} MOVE TO POSS RADAR";
+                    } else {
+                        stderr.writeln('DIG FOR POSSIBLE RADAR');
+                        action = "DIG ${x} $y DIG RADAR";
+                        myDigs.add([x, y]);
+                        enemyItems.removeAt(0);
+                    }
+                }
+            }
+            else if (role == "HUNTER") {
+                dt('hunter');
                 //1.get Closest ore pos
                 //find enemyConcentration
                 num shortestDistance = 9999;
                 List nearestPoint = List();
-                stderr.writeln('myActiveTraps:$myActiveTraps');
+                dt('myActiveTraps:$myActiveTraps');
+                dt('dmgArea:$dmgArea');
                 for (List trap in myActiveTraps) {
                     List distanceSet = getNewDistanceInlineIfCloser(
                             [x, y],
@@ -903,15 +1063,20 @@ class Robot {
                     nearestPoint = distanceSet[1];
                 } //check for early detonation
 
-                if (enemyDeathCount.keys.toList().length > myDeathCount.keys.toList().length &&
-                    enemyDeathCount.keys.toList().length >= whishedEnemyDeath &&
+                if (enemyDeathCount.keys
+                            .toList()
+                            .length > myDeathCount.keys
+                            .toList()
+                            .length &&
+                    enemyDeathCount.keys
+                            .toList()
+                            .length >= whishedEnemyDeath &&
                     shortestDistance <= 1) {
                     action = "DIG ${nearestPoint[0]} ${nearestPoint[1]} !!!!!";
                     // enemyConcentrationCount -= 1;
                     activateStriker = activateStrikerValue;
-
                 } else {
-                    stderr.writeln('DMGAREA:$dmgArea');
+                    dt('DMGAREA:$dmgArea');
                     if (hunterField.isNotEmpty) {
                         //
                         if (item != 3) {
@@ -930,27 +1095,24 @@ class Robot {
                             }
                             if (enemyRadarGuess.isNotEmpty) {
                                 goodPos = enemyRadarGuess[0];
-
-                            }else{
+                            } else {
                                 goodPos = hunterField[0];
-
                             }
-
 
                             if (x != goodPos[0] || y != goodPos[1]) {
                                 //if not at ore
-                                //stderr.writeln('GoTo build');
+                                //dt('GoTo build');
                                 action = "MOVE ${goodPos[0]} ${goodPos[1]} build";
                             } else {
                                 //if at ore
                                 if (enemyRadarGuess.isNotEmpty) {
                                     // goodPos = enemyRadarGuess[0];
                                     enemyRadarGuess.removeAt(0);
-                                }else{
+                                } else {
                                     //  goodPos = hunterField[0];
                                     hunterField.removeAt(0);
                                 }
-                                stderr.writeln('Dig trap');
+                                dt('Dig trap');
                                 action = "DIG $x $y DIG build";
                                 myActiveTraps.add([x, y]);
                                 myDigs.add([x, y]);
@@ -965,11 +1127,14 @@ class Robot {
                         }
                     } else {
                         //wait to detonate
-                        if (enemyDeathCount.keys.toList().length > myDeathCount.keys.toList().length) {
+                        if (enemyDeathCount.keys
+                                    .toList()
+                                    .length > myDeathCount.keys
+                                    .toList()
+                                    .length) {
                             action = "DIG ${strikePosition[0]} ${strikePosition[1]} DETONATION";
                             enemyConcentrationCount += 1;
                             activateStriker = activateStrikerValue;
-
                         } else {
                             action = "MOVE ${x} ${y} build moveToConcentration";
                         }
@@ -978,7 +1143,7 @@ class Robot {
                     }
                 }
             } else if (role == "STRIKER") {
-                stderr.writeln('striker');
+                dt('striker');
                 //1.get Closest ore pos
                 //find enemyConcentration
                 var enemyToExtinct = null;
@@ -989,9 +1154,9 @@ class Robot {
                         break;
                     }
                 }
-                if(enemyToExtinct == null){
+                if (enemyToExtinct == null) {
                     switchToMiner;
-                }else{
+                } else {
                     if (item != 3) {
                         action = "REQUEST TRAP REQUEST TRAP To STRIKE";
                     } else {
@@ -1025,11 +1190,23 @@ class Robot {
                         }
                     }
                 }
-
             }
         }
 
         return action;
+    }
+
+    int getIndexOfPositionInList(pos, list) {
+        int foundPosition = -1;
+
+        for (int i = 0; i < list.length; i++) {
+            List lPos = list[i];
+            if (pos.isNotEmpty && lPos.isNotEmpty && pos[0] == lPos[0] && pos[1] == lPos[1]) {
+                foundPosition = i;
+                break;
+            }
+        }
+        return foundPosition;
     }
 
     void addHunter() {
@@ -1049,11 +1226,20 @@ class Robot {
     void addScout() {
         if (role != "SCOUT") {
             scoutCounter += 1;
-            stderr.writeln("addScout");
-            stderr.writeln("scoutCounter:$scoutCounter ");
+            dt("addScout");
+            dt("scoutCounter:$scoutCounter ");
             role = "SCOUT";
             getRadar = true;
             buryRadar = false;
+        }
+    }
+
+    void addSniper() {
+        if (role != "Sniper") {
+            sniperCounter += 1;
+            dt("addSniper");
+            dt("sniperCounter:$sniperCounter");
+            role = "SNIPER";
         }
     }
 
@@ -1075,7 +1261,10 @@ class Robot {
     void switchToScout() {
         removeHunter();
         addScout();
+    }
 
+    void switchToSniper() {
+        addSniper();
     }
 }
 

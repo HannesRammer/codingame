@@ -698,7 +698,10 @@ function makeMove(fromChessField, toChessField) {
     fromChessField.figure = undefined;
     chessBoard.colorToMove = chessBoard.colorToMove === "white" ? "black" : "white";
     removeMoves();
-    document.querySelector(`#${toChessField.id} .rubik_field`).click();//rubikField.click();
+    let rubikFieldDiv = document.querySelector(`#${toChessField.id} .rubik_field`);//rubikField.click();
+    if(rubikFieldDiv!==null){
+        rubikFieldDiv.click();
+    }//rubikField.click();
     let rubikField = toChessField.rubikField;
     let x = toChessField.x;
     let y = toChessField.y;

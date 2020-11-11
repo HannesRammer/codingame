@@ -1,20 +1,3 @@
-let chessBoardMap = {};
-let chessBoardList = [];
-
-let rubikDirections = ["up", "right", "down", "left", "clockwise", "anticlockwise"];
-let rubikDirectionsCounter = 0;
-let board = [["w", "s", "w", "s", "w", "s", "w", "s"],
-    ["s", "w", "s", "w", "s", "w", "s", "w"],
-
-    ["w", "s", "w", "s", "w", "s", "w", "s"],
-    ["s", "w", "s", "w", "s", "w", "s", "w"],
-
-    ["w", "s", "w", "s", "w", "s", "w", "s"],
-    ["s", "w", "s", "w", "s", "w", "s", "w"],
-
-    ["w", "s", "w", "s", "w", "s", "w", "s"],
-    ["s", "w", "s", "w", "s", "w", "s", "w"]];
-
 class ChessBoard {
     chessFields = [];
     colorToMove = "white";
@@ -22,6 +5,59 @@ class ChessBoard {
     constructor(chessFields) {
         this.chessFields = chessFields;
     }
+
+    getPossibleMoves() {
+        let possibleMoves = [];
+        let pMap = {};
+        for (let x = 0; x < 8; x++) {
+            for (let y = 0; y < 8; y++) {
+                let pos = ChessBoard.calcPos(x, y);
+                let figure = this.chessFields[pos].figure;
+                if (figure !== undefined) {
+                    possibleMoves = figure.getPossibleMoves(x, y,this);
+                    pMap[`${x}_${y}`] = possibleMoves;
+                }
+            }
+        }
+        //return possibleMoves;
+        return pMap;
+    }
+
+    removeMoves() {
+        this.chessFields.forEach(chessField => {
+            chessField.marker = null;
+        })
+    }
+
+    getChessField(pos) {
+        return this.chessFields[pos];
+    }
+
+    static calcPos(x, y) {
+        return (y * 8) + (x + 1) - 1;
+    }
+
+
+    evaluateBoard() {
+        let totalEvaluation = 0;
+        let figCount = 0;
+        for (let x = 0; x < 8; x++) {
+            for (let y = 0; y < 8; y++) {
+                let pos = ChessBoard.calcPos(x, y);
+                let figure = this.chessFields[pos].figure;
+
+                if (figure !== undefined && figure !== null) {
+                    figCount++;
+                    let value = figure.value;
+                    totalEvaluation = totalEvaluation + value;
+                }
+
+            }
+        }
+        console.log(`totalEvaluation ${totalEvaluation} figCount ${figCount}`);
+        return totalEvaluation;
+    }
+
 }
 
 class ChessField {
@@ -51,24 +87,6 @@ class ChessField {
         return `xy:${this.xyPosition} color:${this.color} marker:${this.marker} 
                  |----figure:${this.rubikField} 
                  |----rubikField:${this.rubikField.toString()} `;
-
-    }
-}
-
-class RubikField {
-    x;
-    y;
-    special;
-    color;
-
-    constructor(x, y, special) {
-        this.x = x;
-        this.y = y;
-        this.special = special;
-    }
-
-    toString() {
-        return `xy:${this.x}${this.y} special:${this.special}`;
     }
 }
 
@@ -103,586 +121,623 @@ class Figure {
         }
     }
 
+    getPossibleMoves(x, y,chessBoard) {
+        let possibleMoves = [];
+        if (this.type === "rock") {
+            possibleMoves = Figure.getRockMoves(this, x, y,chessBoard);
+        } else if (this.type === "knight") {
+            possibleMoves = Figure.getKnightMoves(this, x, y,chessBoard);
+        } else if (this.type === "bishop") {
+            possibleMoves = Figure.getBishopMoves(this, x, y,chessBoard);
+        } else if (this.type === "queen") {
+            possibleMoves = Figure.getQueenMoves(this, x, y,chessBoard);
+        } else if (this.type === "king") {
+            possibleMoves = Figure.getKingMoves(this, x, y,chessBoard);
+        } else if (this.type === "pawn") {
+            possibleMoves = Figure.getPawnMoves(this, x, y,chessBoard);
+        }
+        return possibleMoves;
+    }
+
+    static getRockMoves(rock, x, y, chessBoard) {
+        let possibleMoves = [];
+        let possibleAttacks = [];
+
+        for (let i = y + 1; i < 8; i++) {//below rock
+
+            let chessField = chessBoard.getChessField(ChessBoard.calcPos(x, i));
+            let chessFieldFigure = chessField.figure;
+
+            let isEmpty = false;
+
+            if (chessFieldFigure === undefined || chessFieldFigure === null) {
+                isEmpty = true;
+            }
+            if (isEmpty) {
+                possibleMoves.push(chessField);
+            } else {
+                let isEnemy = chessFieldFigure.color !== rock.color;
+                if (isEnemy) {
+                    possibleAttacks.push(chessField);
+                }
+                break;
+            }
+        }
+        for (let i = y - 1; i >= 0; i--) {//above rock
+
+            let chessField = chessBoard.getChessField(ChessBoard.calcPos(x, i));
+            let chessFieldFigure = chessField.figure;
+            let isEmpty = false;
+
+            if (chessFieldFigure === undefined || chessFieldFigure === null) {
+                isEmpty = true;
+            }
+
+            if (isEmpty) {
+                possibleMoves.push(chessField);
+            } else {
+                let isEnemy = chessFieldFigure.color !== rock.color;
+                if (isEnemy) {
+                    possibleAttacks.push(chessField);
+                }
+                break;
+            }
+        }
+
+        for (let i = x - 1; i >= 0; i--) {//left of rock
+
+            let chessField = chessBoard.getChessField(ChessBoard.calcPos(i, y));
+            let chessFieldFigure = chessField.figure;
+            let isEmpty = false;
+
+            if (chessFieldFigure === undefined || chessFieldFigure === null) {
+                isEmpty = true;
+            }
+
+            if (isEmpty) {
+                possibleMoves.push(chessField);
+            } else {
+                let isEnemy = chessFieldFigure.color !== rock.color;
+                if (isEnemy) {
+                    possibleAttacks.push(chessField);
+                }
+                break;
+            }
+        }
+
+        for (let i = x + 1; i < 8; i++) {//left of rock
+
+            let chessField = chessBoard.getChessField(ChessBoard.calcPos(i, y));
+            let chessFieldFigure = chessField.figure;
+            let isEmpty = false;
+
+            if (chessFieldFigure === undefined || chessFieldFigure === null) {
+                isEmpty = true;
+            }
+
+            if (isEmpty) {
+                possibleMoves.push(chessField);
+            } else {
+                let isEnemy = chessFieldFigure.color !== rock.color;
+                if (isEnemy) {
+                    possibleAttacks.push(chessField);
+                }
+                break;
+            }
+        }
+        return [possibleMoves, possibleAttacks];
+
+    }
+
+    static getBishopMoves(bishop, x, y, chessBoard) {
+        let possibleMoves = [];
+        let possibleAttacks = [];
+
+        let distance = 0;
+        let top = y;
+        let bottom = 7 - y;
+        let left = x;
+        let right = 7 - x;
+
+        //below right bishop
+        if (right <= bottom) {
+            distance = right;
+        } else {
+            distance = bottom;
+        }
+
+        for (let i = 1; i <= distance; i++) {
+            let chessField = chessBoard.getChessField(ChessBoard.calcPos(x + i, y + i));
+            let chessFieldFigure = chessField.figure;
+            let isEmpty = false;
+
+            if (chessFieldFigure === undefined || chessFieldFigure === null) {
+                isEmpty = true;
+            }
+            if (isEmpty) {
+                possibleMoves.push(chessField);
+            } else {
+                let isEnemy = chessFieldFigure.color !== bishop.color;
+                if (isEnemy) {
+                    possibleAttacks.push(chessField);
+                }
+                break;
+            }
+        }
+
+        //below left bishop
+        if (left <= bottom) {
+            distance = left;
+        } else {
+            distance = bottom;
+        }
+
+        for (let i = 1; i <= distance; i++) {
+            let chessField = chessBoard.getChessField(ChessBoard.calcPos(x - i, y + i));
+            let chessFieldFigure = chessField.figure;
+            let isEmpty = false;
+
+            if (chessFieldFigure === undefined || chessFieldFigure === null) {
+                isEmpty = true;
+            }
+            if (isEmpty) {
+                possibleMoves.push(chessField);
+            } else {
+                let isEnemy = chessFieldFigure.color !== bishop.color;
+                if (isEnemy) {
+                    possibleAttacks.push(chessField);
+                }
+                break;
+            }
+        }
+
+
+        //top left bishop
+        if (left <= top) {
+            distance = left;
+        } else {
+            distance = top;
+        }
+
+        for (let i = 1; i <= distance; i++) {
+            let chessField = chessBoard.getChessField(ChessBoard.calcPos(x - i, y - i));
+            let chessFieldFigure = chessField.figure;
+            let isEmpty = false;
+
+            if (chessFieldFigure === undefined || chessFieldFigure === null) {
+                isEmpty = true;
+            }
+            if (isEmpty) {
+                possibleMoves.push(chessField);
+            } else {
+                let isEnemy = chessFieldFigure.color !== bishop.color;
+                if (isEnemy) {
+                    possibleAttacks.push(chessField);
+                }
+                break;
+            }
+        }
+
+        //top right bishop
+        if (right <= top) {
+            distance = right;
+        } else {
+            distance = top;
+        }
+
+        for (let i = 1; i <= distance; i++) {
+            let chessField = chessBoard.getChessField(ChessBoard.calcPos(x + i, y - i));
+            let chessFieldFigure = chessField.figure;
+            let isEmpty = false;
+
+            if (chessFieldFigure === undefined || chessFieldFigure === null) {
+                isEmpty = true;
+            }
+            if (isEmpty) {
+                possibleMoves.push(chessField);
+            } else {
+                let isEnemy = chessFieldFigure.color !== bishop.color;
+                if (isEnemy) {
+                    possibleAttacks.push(chessField);
+                }
+                break;
+            }
+        }
+
+
+        return [possibleMoves, possibleAttacks];
+
+    }
+
+
+    static getQueenMoves(queen, x, y, chessBoard) {
+        let possibleMoves = [];
+        let possibleAttacks = [];
+
+        //bishop
+        let distance = 0;
+        let top = y;
+        let bottom = 7 - y;
+        let left = x;
+        let right = 7 - x;
+
+        //below right queen
+        if (right <= bottom) {
+            distance = right;
+        } else {
+            distance = bottom;
+        }
+
+        for (let i = 1; i <= distance; i++) {
+            let chessField = chessBoard.getChessField(ChessBoard.calcPos(x + i, y + i));
+            let chessFieldFigure = chessField.figure;
+            let isEmpty = false;
+
+            if (chessFieldFigure === undefined || chessFieldFigure === null) {
+                isEmpty = true;
+            }
+            if (isEmpty) {
+                possibleMoves.push(chessField);
+            } else {
+                let isEnemy = chessFieldFigure.color !== queen.color;
+                if (isEnemy) {
+                    possibleAttacks.push(chessField);
+                }
+                break;
+            }
+        }
+
+        //below left queen
+        if (left <= bottom) {
+            distance = left;
+        } else {
+            distance = bottom;
+        }
+
+        for (let i = 1; i <= distance; i++) {
+            let chessField = chessBoard.getChessField(ChessBoard.calcPos(x - i, y + i));
+            let chessFieldFigure = chessField.figure;
+            let isEmpty = false;
+
+            if (chessFieldFigure === undefined || chessFieldFigure === null) {
+                isEmpty = true;
+            }
+            if (isEmpty) {
+                possibleMoves.push(chessField);
+            } else {
+                let isEnemy = chessFieldFigure.color !== queen.color;
+                if (isEnemy) {
+                    possibleAttacks.push(chessField);
+                }
+                break;
+            }
+        }
+
+
+        //top left queen
+        if (left <= top) {
+            distance = left;
+        } else {
+            distance = top;
+        }
+
+        for (let i = 1; i <= distance; i++) {
+            let chessField = chessBoard.getChessField(ChessBoard.calcPos(x - i, y - i));
+            let chessFieldFigure = chessField.figure;
+            let isEmpty = false;
+
+            if (chessFieldFigure === undefined || chessFieldFigure === null) {
+                isEmpty = true;
+            }
+            if (isEmpty) {
+                possibleMoves.push(chessField);
+            } else {
+                let isEnemy = chessFieldFigure.color !== queen.color;
+                if (isEnemy) {
+                    possibleAttacks.push(chessField);
+                }
+                break;
+            }
+        }
+
+        //top right queen
+        if (right <= top) {
+            distance = right;
+        } else {
+            distance = top;
+        }
+
+        for (let i = 1; i <= distance; i++) {
+            let chessField = chessBoard.getChessField(ChessBoard.calcPos(x + i, y - i));
+            let chessFieldFigure = chessField.figure;
+            let isEmpty = false;
+
+            if (chessFieldFigure === undefined || chessFieldFigure === null) {
+                isEmpty = true;
+            }
+            if (isEmpty) {
+                possibleMoves.push(chessField);
+            } else {
+                let isEnemy = chessFieldFigure.color !== queen.color;
+                if (isEnemy) {
+                    possibleAttacks.push(chessField);
+                }
+                break;
+            }
+        }
+
+//ROCK
+        for (let i = y + 1; i < 8; i++) {//below queen
+
+            let chessField = chessBoard.getChessField(ChessBoard.calcPos(x, i));
+            let chessFieldFigure = chessField.figure;
+            let isEmpty = false;
+
+            if (chessFieldFigure === undefined || chessFieldFigure === null) {
+                isEmpty = true;
+            }
+
+            if (isEmpty) {
+                possibleMoves.push(chessField);
+            } else {
+                let isEnemy = chessFieldFigure.color !== queen.color;
+                if (isEnemy) {
+                    possibleAttacks.push(chessField);
+                }
+                break;
+            }
+        }
+        for (let i = y - 1; i >= 0; i--) {//above queen
+
+            let chessField = chessBoard.getChessField(ChessBoard.calcPos(x, i));
+            let chessFieldFigure = chessField.figure;
+            let isEmpty = false;
+
+            if (chessFieldFigure === undefined || chessFieldFigure === null) {
+                isEmpty = true;
+            }
+
+            if (isEmpty) {
+                possibleMoves.push(chessField);
+            } else {
+                let isEnemy = chessFieldFigure.color !== queen.color;
+                if (isEnemy) {
+                    possibleAttacks.push(chessField);
+                }
+                break;
+            }
+        }
+
+        for (let i = x - 1; i >= 0; i--) {//left of queen
+
+            let chessField = chessBoard.getChessField(ChessBoard.calcPos(i, y));
+            let chessFieldFigure = chessField.figure;
+            let isEmpty = false;
+
+            if (chessFieldFigure === undefined || chessFieldFigure === null) {
+                isEmpty = true;
+            }
+
+            if (isEmpty) {
+                possibleMoves.push(chessField);
+            } else {
+                let isEnemy = chessFieldFigure.color !== queen.color;
+                if (isEnemy) {
+                    possibleAttacks.push(chessField);
+                }
+                break;
+            }
+        }
+
+        for (let i = x + 1; i < 8; i++) {//left of queen
+
+            let chessField = chessBoard.getChessField(ChessBoard.calcPos(i, y));
+            let chessFieldFigure = chessField.figure;
+            let isEmpty = false;
+
+            if (chessFieldFigure === undefined || chessFieldFigure === null) {
+                isEmpty = true;
+            }
+
+            if (isEmpty) {
+                possibleMoves.push(chessField);
+            } else {
+                let isEnemy = chessFieldFigure.color !== queen.color;
+                if (isEnemy) {
+                    possibleAttacks.push(chessField);
+                }
+                break;
+            }
+        }
+        return [possibleMoves, possibleAttacks];
+
+    }
+
+    static getKingMoves(king, x, y, chessBoard) {
+        // y = switchY(y);
+        let possibleMoves = [];
+        let possibleAttacks = [];
+        let kingMoves = [[x, y - 1], [x + 1, y - 1], [x + 1, y], [x + 1, y + 1], [x, y + 1], [x - 1, y + 1], [x - 1, y], [x - 1, y - 1]];
+// debugger;
+
+        kingMoves.forEach((position) => {
+            if ((position[0] >= 0 && position[0] < 8) && (position[1] >= 0 && position[1] < 8)) {
+
+                let chessField = chessBoard.getChessField(ChessBoard.calcPos(position[0], position[1]));
+                let chessFieldFigure = chessField.figure;
+                let isEmpty = false;
+
+                if (chessFieldFigure === undefined || chessFieldFigure === null) {
+                    isEmpty = true;
+                }
+
+                if (isEmpty) {
+                    possibleMoves.push(chessField);
+                } else {
+                    let isEnemy = chessFieldFigure.color !== king.color;
+                    if (isEnemy) {
+                        possibleAttacks.push(chessField);
+                    }
+                }
+            }
+        });
+        return [possibleMoves, possibleAttacks];
+
+    }
+
+    static getKnightMoves(knight, x, y, chessBoard) {
+        // y = switchY(y);
+        let possibleMoves = [];
+        let possibleAttacks = [];
+        let knightMoves = [[x - 1, y - 2], [x - 2, y - 1], [x - 2, y + 1], [x - 1, y + 2], [x + 1, y + 2], [x + 2, y + 1], [x + 2, y - 1], [x + 1, y - 2]];
+// debugger;
+
+        knightMoves.forEach((position) => {
+            if ((position[0] >= 0 && position[0] < 8) && (position[1] >= 0 && position[1] < 8)) {
+                let chessField = chessBoard.getChessField(ChessBoard.calcPos(position[0], position[1]));
+                let chessFieldFigure = chessField.figure;
+                let isEmpty = false;
+
+                if (chessFieldFigure === undefined || chessFieldFigure === null) {
+                    isEmpty = true;
+                }
+
+                if (isEmpty) {
+                    possibleMoves.push(chessField);
+                } else {
+                    let isEnemy = chessFieldFigure.color !== knight.color;
+                    if (isEnemy) {
+                        possibleAttacks.push(chessField);
+                    }
+                }
+            }
+
+        });
+        return [possibleMoves, possibleAttacks];
+
+    }
+
+
+    static getPawnMoves(pawn, x, y, chessBoard) {
+        let possibleMoves = [];
+        let possibleAttacks = [];
+//move one field
+        let chessField;
+        if (pawn.color === "white") {
+            chessField = chessBoard.getChessField(ChessBoard.calcPos(x, y - 1));
+        } else {
+            chessField = chessBoard.getChessField(ChessBoard.calcPos(x, y + 1));
+        }
+        if (chessField !== undefined) {//no field for move one found;
+            let chessFieldFigure = chessField.figure;
+            let isEmpty = false;
+            if (chessFieldFigure === undefined || chessFieldFigure === null) {
+                isEmpty = true;
+            } else {
+                isEmpty = false;
+            }
+            if (isEmpty) {
+                possibleMoves.push(chessField);
+            }
+//move two field
+            if (!pawn.hasMoved) {
+                let chessField1;
+                let chessField2;
+                if (pawn.color === "white") {
+                    chessField1 = chessBoard.getChessField(ChessBoard.calcPos(x, y - 1));
+                    chessField2 = chessBoard.getChessField(ChessBoard.calcPos(x, y - 2));
+                } else {
+                    chessField1 = chessBoard.getChessField(ChessBoard.calcPos(x, y + 1));
+                    chessField2 = chessBoard.getChessField(ChessBoard.calcPos(x, y + 2));
+                }
+                let chessFieldFigure1 = chessField1.figure;
+                let chessFieldFigure2 = chessField2.figure;
+                let isEmpty1 = chessFieldFigure1 === undefined;
+                let isEmpty2 = chessFieldFigure2 === undefined;
+                if (isEmpty1 && isEmpty2) {
+                    possibleMoves.push(chessField2);
+                }
+            }
+//attack right
+            if (pawn.color === "white") {
+                chessField = chessBoard.getChessField(ChessBoard.calcPos(x + 1, y - 1));
+            } else {
+                chessField = chessBoard.getChessField(ChessBoard.calcPos(x + 1, y + 1));
+            }
+            chessFieldFigure = chessField.figure;
+            if (chessFieldFigure === undefined || chessFieldFigure === null) {
+                isEmpty = true;
+            } else {
+                isEmpty = false;
+            }
+            if (!isEmpty) {
+                let isEnemy = chessFieldFigure.color !== pawn.color;
+                if (isEnemy) {
+                    possibleAttacks.push(chessField);
+                }
+            }
+//attack left
+            isEmpty = false;
+            if (pawn.color === "white") {
+                chessField = chessBoard.getChessField(ChessBoard.calcPos(x - 1, y - 1));
+            } else {
+                chessField = chessBoard.getChessField(ChessBoard.calcPos(x - 1, y + 1));
+            }
+            chessFieldFigure = chessField.figure;
+            if (chessFieldFigure === undefined || chessFieldFigure === null) {
+                isEmpty = true;
+            }
+            if (!isEmpty) {
+                let isEnemy = chessFieldFigure.color !== pawn.color;
+                if (isEnemy) {
+                    possibleAttacks.push(chessField);
+                }
+            }
+        }
+        return [possibleMoves, possibleAttacks];
+    }
+
+
     toString() {
         return `type:${this.type} color:${this.color}`;
     }
 }
 
-function calcPos(x, y) {
-    return (y * 8) + (x + 1) - 1;
-}
+class RubikField {
+    x;
+    y;
+    special;
+    color;
 
-function getChessField(chessBoard, pos) {
-    return chessBoard.chessFields[pos];
-}
-
-function getRockMoves(rock, x, y) {
-    let possibleMoves = [];
-    let possibleAttacks = [];
-
-    for (let i = y + 1; i < 8; i++) {//below rock
-
-        let chessField = getChessField(chessBoard, calcPos(x, i));
-        let chessFieldFigure = chessField.figure;
-
-        let isEmpty = false;
-
-        if (chessFieldFigure === undefined || chessFieldFigure === null) {
-            isEmpty = true;
-        }
-        if (isEmpty) {
-            possibleMoves.push(chessField);
-        } else {
-            let isEnemy = chessFieldFigure.color !== rock.color;
-            if (isEnemy) {
-                possibleAttacks.push(chessField);
-            }
-            break;
-        }
-    }
-    for (let i = y - 1; i >= 0; i--) {//above rock
-
-        let chessField = getChessField(chessBoard, calcPos(x, i));
-        let chessFieldFigure = chessField.figure;
-        let isEmpty = false;
-
-        if (chessFieldFigure === undefined || chessFieldFigure === null) {
-            isEmpty = true;
-        }
-
-        if (isEmpty) {
-            possibleMoves.push(chessField);
-        } else {
-            let isEnemy = chessFieldFigure.color !== rock.color;
-            if (isEnemy) {
-                possibleAttacks.push(chessField);
-            }
-            break;
-        }
+    constructor(x, y, special) {
+        this.x = x;
+        this.y = y;
+        this.special = special;
     }
 
-    for (let i = x - 1; i >= 0; i--) {//left of rock
-
-        let chessField = getChessField(chessBoard, calcPos(i, y));
-        let chessFieldFigure = chessField.figure;
-        let isEmpty = false;
-
-        if (chessFieldFigure === undefined || chessFieldFigure === null) {
-            isEmpty = true;
-        }
-
-        if (isEmpty) {
-            possibleMoves.push(chessField);
-        } else {
-            let isEnemy = chessFieldFigure.color !== rock.color;
-            if (isEnemy) {
-                possibleAttacks.push(chessField);
-            }
-            break;
-        }
+    toString() {
+        return `xy:${this.x}${this.y} special:${this.special}`;
     }
-
-    for (let i = x + 1; i < 8; i++) {//left of rock
-
-        let chessField = getChessField(chessBoard, calcPos(i, y));
-        let chessFieldFigure = chessField.figure;
-        let isEmpty = false;
-
-        if (chessFieldFigure === undefined || chessFieldFigure === null) {
-            isEmpty = true;
-        }
-
-        if (isEmpty) {
-            possibleMoves.push(chessField);
-        } else {
-            let isEnemy = chessFieldFigure.color !== rock.color;
-            if (isEnemy) {
-                possibleAttacks.push(chessField);
-            }
-            break;
-        }
-    }
-    return [possibleMoves, possibleAttacks];
-
-}
-
-function getBishopMoves(bishop, x, y) {
-    let possibleMoves = [];
-    let possibleAttacks = [];
-
-    let distance = 0;
-    let top = y;
-    let bottom = 7 - y;
-    let left = x;
-    let right = 7 - x;
-
-    //below right bishop
-    if (right <= bottom) {
-        distance = right;
-    } else {
-        distance = bottom;
-    }
-
-    for (let i = 1; i <= distance; i++) {
-        let chessField = getChessField(chessBoard, calcPos(x + i, y + i));
-        let chessFieldFigure = chessField.figure;
-        let isEmpty = false;
-
-        if (chessFieldFigure === undefined || chessFieldFigure === null) {
-            isEmpty = true;
-        }
-        if (isEmpty) {
-            possibleMoves.push(chessField);
-        } else {
-            let isEnemy = chessFieldFigure.color !== bishop.color;
-            if (isEnemy) {
-                possibleAttacks.push(chessField);
-            }
-            break;
-        }
-    }
-
-    //below left bishop
-    if (left <= bottom) {
-        distance = left;
-    } else {
-        distance = bottom;
-    }
-
-    for (let i = 1; i <= distance; i++) {
-        let chessField = getChessField(chessBoard, calcPos(x - i, y + i));
-        let chessFieldFigure = chessField.figure;
-        let isEmpty = false;
-
-        if (chessFieldFigure === undefined || chessFieldFigure === null) {
-            isEmpty = true;
-        }
-        if (isEmpty) {
-            possibleMoves.push(chessField);
-        } else {
-            let isEnemy = chessFieldFigure.color !== bishop.color;
-            if (isEnemy) {
-                possibleAttacks.push(chessField);
-            }
-            break;
-        }
-    }
-
-
-    //top left bishop
-    if (left <= top) {
-        distance = left;
-    } else {
-        distance = top;
-    }
-
-    for (let i = 1; i <= distance; i++) {
-        let chessField = getChessField(chessBoard, calcPos(x - i, y - i));
-        let chessFieldFigure = chessField.figure;
-        let isEmpty = false;
-
-        if (chessFieldFigure === undefined || chessFieldFigure === null) {
-            isEmpty = true;
-        }
-        if (isEmpty) {
-            possibleMoves.push(chessField);
-        } else {
-            let isEnemy = chessFieldFigure.color !== bishop.color;
-            if (isEnemy) {
-                possibleAttacks.push(chessField);
-            }
-            break;
-        }
-    }
-
-    //top right bishop
-    if (right <= top) {
-        distance = right;
-    } else {
-        distance = top;
-    }
-
-    for (let i = 1; i <= distance; i++) {
-        let chessField = getChessField(chessBoard, calcPos(x + i, y - i));
-        let chessFieldFigure = chessField.figure;
-        let isEmpty = false;
-
-        if (chessFieldFigure === undefined || chessFieldFigure === null) {
-            isEmpty = true;
-        }
-        if (isEmpty) {
-            possibleMoves.push(chessField);
-        } else {
-            let isEnemy = chessFieldFigure.color !== bishop.color;
-            if (isEnemy) {
-                possibleAttacks.push(chessField);
-            }
-            break;
-        }
-    }
-
-
-    return [possibleMoves, possibleAttacks];
-
 }
 
 
-function getQueenMoves(queen, x, y) {
-    let possibleMoves = [];
-    let possibleAttacks = [];
+let chessBoardMap = {};
+let chessBoardList = [];
 
-    //bishop
-    let distance = 0;
-    let top = y;
-    let bottom = 7 - y;
-    let left = x;
-    let right = 7 - x;
+let rubikDirections = ["up", "right", "down", "left", "clockwise", "anticlockwise"];
+let rubikDirectionsCounter = 0;
+let board = [["w", "s", "w", "s", "w", "s", "w", "s"],
+    ["s", "w", "s", "w", "s", "w", "s", "w"],
 
-    //below right queen
-    if (right <= bottom) {
-        distance = right;
-    } else {
-        distance = bottom;
-    }
+    ["w", "s", "w", "s", "w", "s", "w", "s"],
+    ["s", "w", "s", "w", "s", "w", "s", "w"],
 
-    for (let i = 1; i <= distance; i++) {
-        let chessField = getChessField(chessBoard, calcPos(x + i, y + i));
-        let chessFieldFigure = chessField.figure;
-        let isEmpty = false;
+    ["w", "s", "w", "s", "w", "s", "w", "s"],
+    ["s", "w", "s", "w", "s", "w", "s", "w"],
 
-        if (chessFieldFigure === undefined || chessFieldFigure === null) {
-            isEmpty = true;
-        }
-        if (isEmpty) {
-            possibleMoves.push(chessField);
-        } else {
-            let isEnemy = chessFieldFigure.color !== queen.color;
-            if (isEnemy) {
-                possibleAttacks.push(chessField);
-            }
-            break;
-        }
-    }
+    ["w", "s", "w", "s", "w", "s", "w", "s"],
+    ["s", "w", "s", "w", "s", "w", "s", "w"]];
 
-    //below left queen
-    if (left <= bottom) {
-        distance = left;
-    } else {
-        distance = bottom;
-    }
-
-    for (let i = 1; i <= distance; i++) {
-        let chessField = getChessField(chessBoard, calcPos(x - i, y + i));
-        let chessFieldFigure = chessField.figure;
-        let isEmpty = false;
-
-        if (chessFieldFigure === undefined || chessFieldFigure === null) {
-            isEmpty = true;
-        }
-        if (isEmpty) {
-            possibleMoves.push(chessField);
-        } else {
-            let isEnemy = chessFieldFigure.color !== queen.color;
-            if (isEnemy) {
-                possibleAttacks.push(chessField);
-            }
-            break;
-        }
-    }
-
-
-    //top left queen
-    if (left <= top) {
-        distance = left;
-    } else {
-        distance = top;
-    }
-
-    for (let i = 1; i <= distance; i++) {
-        let chessField = getChessField(chessBoard, calcPos(x - i, y - i));
-        let chessFieldFigure = chessField.figure;
-        let isEmpty = false;
-
-        if (chessFieldFigure === undefined || chessFieldFigure === null) {
-            isEmpty = true;
-        }
-        if (isEmpty) {
-            possibleMoves.push(chessField);
-        } else {
-            let isEnemy = chessFieldFigure.color !== queen.color;
-            if (isEnemy) {
-                possibleAttacks.push(chessField);
-            }
-            break;
-        }
-    }
-
-    //top right queen
-    if (right <= top) {
-        distance = right;
-    } else {
-        distance = top;
-    }
-
-    for (let i = 1; i <= distance; i++) {
-        let chessField = getChessField(chessBoard, calcPos(x + i, y - i));
-        let chessFieldFigure = chessField.figure;
-        let isEmpty = false;
-
-        if (chessFieldFigure === undefined || chessFieldFigure === null) {
-            isEmpty = true;
-        }
-        if (isEmpty) {
-            possibleMoves.push(chessField);
-        } else {
-            let isEnemy = chessFieldFigure.color !== queen.color;
-            if (isEnemy) {
-                possibleAttacks.push(chessField);
-            }
-            break;
-        }
-    }
-
-//ROCK
-    for (let i = y + 1; i < 8; i++) {//below queen
-
-        let chessField = getChessField(chessBoard, calcPos(x, i));
-        let chessFieldFigure = chessField.figure;
-        let isEmpty = false;
-
-        if (chessFieldFigure === undefined || chessFieldFigure === null) {
-            isEmpty = true;
-        }
-
-        if (isEmpty) {
-            possibleMoves.push(chessField);
-        } else {
-            let isEnemy = chessFieldFigure.color !== queen.color;
-            if (isEnemy) {
-                possibleAttacks.push(chessField);
-            }
-            break;
-        }
-    }
-    for (let i = y - 1; i >= 0; i--) {//above queen
-
-        let chessField = getChessField(chessBoard, calcPos(x, i));
-        let chessFieldFigure = chessField.figure;
-        let isEmpty = false;
-
-        if (chessFieldFigure === undefined || chessFieldFigure === null) {
-            isEmpty = true;
-        }
-
-        if (isEmpty) {
-            possibleMoves.push(chessField);
-        } else {
-            let isEnemy = chessFieldFigure.color !== queen.color;
-            if (isEnemy) {
-                possibleAttacks.push(chessField);
-            }
-            break;
-        }
-    }
-
-    for (let i = x - 1; i >= 0; i--) {//left of queen
-
-        let chessField = getChessField(chessBoard, calcPos(i, y));
-        let chessFieldFigure = chessField.figure;
-        let isEmpty = false;
-
-        if (chessFieldFigure === undefined || chessFieldFigure === null) {
-            isEmpty = true;
-        }
-
-        if (isEmpty) {
-            possibleMoves.push(chessField);
-        } else {
-            let isEnemy = chessFieldFigure.color !== queen.color;
-            if (isEnemy) {
-                possibleAttacks.push(chessField);
-            }
-            break;
-        }
-    }
-
-    for (let i = x + 1; i < 8; i++) {//left of queen
-
-        let chessField = getChessField(chessBoard, calcPos(i, y));
-        let chessFieldFigure = chessField.figure;
-        let isEmpty = false;
-
-        if (chessFieldFigure === undefined || chessFieldFigure === null) {
-            isEmpty = true;
-        }
-
-        if (isEmpty) {
-            possibleMoves.push(chessField);
-        } else {
-            let isEnemy = chessFieldFigure.color !== queen.color;
-            if (isEnemy) {
-                possibleAttacks.push(chessField);
-            }
-            break;
-        }
-    }
-    return [possibleMoves, possibleAttacks];
-
-}
-
-function getKingMoves(king, x, y) {
-    // y = switchY(y);
-    let possibleMoves = [];
-    let possibleAttacks = [];
-    let kingMoves = [[x, y - 1], [x + 1, y - 1], [x + 1, y], [x + 1, y + 1], [x, y + 1], [x - 1, y + 1], [x - 1, y], [x - 1, y - 1]];
-// debugger;
-
-    kingMoves.forEach((position) => {
-        if ((position[0] >= 0 && position[0] < 8) && (position[1] >= 0 && position[1] < 8)) {
-
-            let chessField = getChessField(chessBoard, calcPos(position[0], position[1]));
-            let chessFieldFigure = chessField.figure;
-            let isEmpty = false;
-
-            if (chessFieldFigure === undefined || chessFieldFigure === null) {
-                isEmpty = true;
-            }
-
-            if (isEmpty) {
-                possibleMoves.push(chessField);
-            } else {
-                let isEnemy = chessFieldFigure.color !== king.color;
-                if (isEnemy) {
-                    possibleAttacks.push(chessField);
-                }
-            }
-        }
-    });
-    return [possibleMoves, possibleAttacks];
-
-}
-
-function getKnightMoves(knight, x, y) {
-    // y = switchY(y);
-    let possibleMoves = [];
-    let possibleAttacks = [];
-    let knightMoves = [[x - 1, y - 2], [x - 2, y - 1], [x - 2, y + 1], [x - 1, y + 2], [x + 1, y + 2], [x + 2, y + 1], [x + 2, y - 1], [x + 1, y - 2]];
-// debugger;
-
-    knightMoves.forEach((position) => {
-        if ((position[0] >= 0 && position[0] < 8) && (position[1] >= 0 && position[1] < 8)) {
-            let chessField = getChessField(chessBoard, calcPos(position[0], position[1]));
-            let chessFieldFigure = chessField.figure;
-            let isEmpty = false;
-
-            if (chessFieldFigure === undefined || chessFieldFigure === null) {
-                isEmpty = true;
-            }
-
-            if (isEmpty) {
-                possibleMoves.push(chessField);
-            } else {
-                let isEnemy = chessFieldFigure.color !== knight.color;
-                if (isEnemy) {
-                    possibleAttacks.push(chessField);
-                }
-            }
-        }
-
-    });
-    return [possibleMoves, possibleAttacks];
-
-}
-
-
-function getPawnMoves(pawn, x, y) {
-    // y = switchY(y);
-    let possibleMoves = [];
-    let possibleAttacks = [];
-
-// debugger;
-//move one field
-    let chessField;
-
-    if (pawn.color === "white") {
-        chessField = getChessField(chessBoard, calcPos(x, y - 1));
-    } else {
-        chessField = getChessField(chessBoard, calcPos(x, y + 1));
-    }
-
-    let chessFieldFigure = chessField.figure;
-    let isEmpty = false;
-
-    if (chessFieldFigure === undefined || chessFieldFigure === null) {
-        isEmpty = true;
-    }
-
-    if (isEmpty) {
-        possibleMoves.push(chessField);
-    }
-//move two field
-
-    if (!pawn.hasMoved) {
-        let chessField1;
-        let chessField2;
-
-        if (pawn.color === "white") {
-            chessField1 = getChessField(chessBoard, calcPos(x, y - 1));
-            chessField2 = getChessField(chessBoard, calcPos(x, y - 2));
-        } else {
-            chessField1 = getChessField(chessBoard, calcPos(x, y + 1));
-            chessField2 = getChessField(chessBoard, calcPos(x, y + 2));
-        }
-        let chessFieldFigure1 = chessField1.figure;
-        let chessFieldFigure2 = chessField2.figure;
-        let isEmpty1 = chessFieldFigure1 === undefined;
-        let isEmpty2 = chessFieldFigure2 === undefined;
-        if (isEmpty1 && isEmpty2) {
-            possibleMoves.push(chessField2);
-        }
-    }
-//attack right
-
-
-    if (pawn.color === "white") {
-        chessField = getChessField(chessBoard, calcPos(x + 1, y - 1));
-    } else {
-        chessField = getChessField(chessBoard, calcPos(x + 1, y + 1));
-    }
-
-    chessFieldFigure = chessField.figure;
-    if (chessFieldFigure === undefined || chessFieldFigure === null) {
-        isEmpty = true;
-    }
-
-    if (!isEmpty) {
-        let isEnemy = chessFieldFigure.color !== pawn.color;
-        if (isEnemy) {
-            possibleAttacks.push(chessField);
-        }
-    }
-//attack left
-
-
-    if (pawn.color === "white") {
-        chessField = getChessField(chessBoard, calcPos(x - 1, y - 1));
-    } else {
-        chessField = getChessField(chessBoard, calcPos(x - 1, y + 1));
-    }
-
-    chessFieldFigure = chessField.figure;
-    if (chessFieldFigure === undefined || chessFieldFigure === null) {
-        isEmpty = true;
-    }
-
-    if (!isEmpty) {
-        let isEnemy = chessFieldFigure.color !== pawn.color;
-        if (isEnemy) {
-            possibleAttacks.push(chessField);
-        }
-    }
-    return [possibleMoves, possibleAttacks];
-}
 
 let whiteFiguresCode = {"king": "&#x2654;", "queen": "&#x2655;", "rock": "&#x2656;", "bishop": "&#x2657;", "knight": "&#x2658;", "pawn": "&#x2659;"};
 let blackFiguresCode = {"king": "&#x265A;", "queen": "&#x265B;", "rock": "&#x265C;", "bishop": "&#x265D;", "knight": "&#x265E;", "pawn": "&#x265F;"};
@@ -693,6 +748,41 @@ let topFigures = ["rock", "knight", "bishop", "queen", "king", "bishop", "knight
 let bottomFigures = ["pawn", "pawn", "pawn", "pawn", "pawn", "pawn", "pawn", "pawn",
     "rock", "knight", "bishop", "queen", "king", "bishop", "knight", "rock"];
 let chessBoard = new ChessBoard([]);
+
+function deepCopy(obj) {
+    let copy;
+
+    // Handle the 3 simple types, and null or undefined
+    if (null == obj || "object" != typeof obj) return obj;
+
+    // Handle Date
+    if (obj instanceof Date) {
+        copy = new Date();
+        copy.setTime(obj.getTime());
+        return copy;
+    }
+
+    // Handle Array
+    if (obj instanceof Array) {
+        copy = [];
+        for (let i = 0, len = obj.length; i < len; i++) {
+            copy[i] = deepCopy(obj[i]);
+        }
+        return copy;
+    }
+
+    // Handle Object
+    if (obj instanceof Object) {
+        copy = {};
+        for (let attr in obj) {
+            if (obj.hasOwnProperty(attr)) copy[attr] = deepCopy(obj[attr]);
+        }
+        return copy;
+    }
+
+    throw new Error("Unable to copy obj! Its type isn't supported.");
+}
+
 
 function switchY(y) {
 
@@ -757,10 +847,10 @@ function createBoard() {
                 }
             }
             let figure;
-            if (calcPos(x, y) < 16) {
+            if (ChessBoard.calcPos(x, y) < 16) {
                 figure = new Figure(topFigures.splice(0, 1)[0], "black");
             }
-            if (calcPos(x, y) >= 48) {
+            if (ChessBoard.calcPos(x, y) >= 48) {
                 figure = new Figure(bottomFigures.splice(0, 1)[0], "white");
             }
             let chessField = new ChessField(x, y, [x, y], `${x} ${letter}`, board[y][x], figure, rubikField, null);
@@ -790,13 +880,20 @@ function addMove(chessField, marker) {
 
 }
 
-function makeMove(fromChessField, toChessField) {
+function makeMove(fromChessField, toChessField, playerType) {
     let figureCopy = {...fromChessField.figure};
     figureCopy.hasMoved = true;
     toChessField.figure = figureCopy;
     fromChessField.figure = undefined;
-    chessBoard.colorToMove = chessBoard.colorToMove === "white" ? "black" : "white";
-    removeMoves();
+    if (chessBoard.colorToMove === "white") {
+        chessBoard.colorToMove = "black";
+    } else if (chessBoard.colorToMove === "black") {
+        chessBoard.colorToMove = "white";
+    } else {
+        alert("problem no color to move");
+    }
+    console.log(`chessBoard.colorToMove ${chessBoard.colorToMove}`);
+    chessBoard.removeMoves();
     let rubikFieldDiv = document.querySelector(`#${toChessField.id} .rubik_field`);//rubikField.click();
     if (rubikFieldDiv !== null) {
         rubikFieldDiv.click();
@@ -810,43 +907,59 @@ function makeMove(fromChessField, toChessField) {
         setTimeout(function () {
             moveUp(x);
             update();
+            if (playerType === "human") {
+                setTimeout(aiMove, 1000);
+            }
         }, 500);
     } else if (rubikField.special === "right") {
         setTimeout(function () {
             moveRight(y);
             update();
+            if (playerType === "human") {
+                setTimeout(aiMove, 1000);
+            }
         }, 500);
     } else if (rubikField.special === "down") {
         setTimeout(function () {
             moveDown(x);
             update();
+            if (playerType === "human") {
+                setTimeout(aiMove, 1000);
+            }
         }, 500);
     } else if (rubikField.special === "left") {
         setTimeout(function () {
             moveLeft(y);
             update();
+            if (playerType === "human") {
+                setTimeout(aiMove, 1000);
+            }
         }, 500);
     } else if (rubikField.special === "clockwise") {
         setTimeout(function () {
             moveClockwise(x, y);
             update();
+            if (playerType === "human") {
+                setTimeout(aiMove, 1000);
+            }
         }, 500);
     } else if (rubikField.special === "anticlockwise") {
         setTimeout(function () {
             moveAntiClockwise(x, y);
             update();
+            if (playerType === "human") {
+                setTimeout(aiMove, 1000);
+            }
         }, 500);
+    }
+    if (rubikField.special === undefined) {
+        if (playerType === "human") {
+            setTimeout(aiMove, 1000);
+        }
     }
 
     // };
     // update();
-
-}
-
-function removeMoves() {
-    chessBoard.chessFields.forEach(chessField => {
-        chessField.marker = null;
-    })
 
 }
 
@@ -855,38 +968,20 @@ function createFigureDiv(figure, x, y) {
     let figureDiv = document.createElement("div");
     figureDiv.id = `figure_${figure.className}`;
     figureDiv.className = `figure f_${figure.color}_${figure.type}`;
-
-//    figureDiv.style.background = `${figure.color}`;
     if (figure.color === "white") {
         figureDiv.innerHTML = `${whiteFiguresCode[figure.type]}`;
         figureDiv.style.textShadow = `1px 1px 1px white, 1px -1px 3px white, -1px 1px 1px white, -1px -1px 1px white`;
-
     } else {
         figureDiv.innerHTML = `${blackFiguresCode[figure.type]}`;
         figureDiv.style.textShadow = `1px 1px 1px white, 1px -1px 3px white, -1px 1px 1px white, -1px -1px 1px white`;
-
     }
     figureDiv.onclick = function () {
-        // document.querySelector("#fromChessFieldDiv").setAttribute("value", calcPos(figure.x, figure.y));
+        // document.querySelector("#fromChessFieldDiv").setAttribute("value", ChessBoard.calcPos(figure.x, figure.y));
         if (figure.color === chessBoard.colorToMove) {
-            chessBoard.fromChessField = calcPos(x, y);
+            chessBoard.fromChessField = ChessBoard.calcPos(x, y);
             // chessBoard.toChessField = "";
-
-            removeMoves();
-            let moveList = [];
-            if (figure.type === "rock") {
-                moveList = getRockMoves(figure, x, y);
-            } else if (figure.type === "knight") {
-                moveList = getKnightMoves(figure, x, y);
-            } else if (figure.type === "bishop") {
-                moveList = getBishopMoves(figure, x, y);
-            } else if (figure.type === "queen") {
-                moveList = getQueenMoves(figure, x, y);
-            } else if (figure.type === "king") {
-                moveList = getKingMoves(figure, x, y);
-            } else if (figure.type === "pawn") {
-                moveList = getPawnMoves(figure, x, y);
-            }
+            chessBoard.removeMoves();
+            let moveList = figure.getPossibleMoves(x, y,chessBoard);
             if (moveList.length > 0) {
                 moveList[0].forEach((element) => {
                     addMove(element, "#00ff1461");
@@ -898,24 +993,17 @@ function createFigureDiv(figure, x, y) {
                 });
                 update();
             }
-
         }
-
     };
     return figureDiv;
-
 }
-
 
 function createRubikFieldDiv(rubikField, x, y) {
     let rubikFieldDiv = document.createElement("div");
     rubikFieldDiv.style.width = "25px";
     rubikFieldDiv.style.height = "25px";
-
-    // debugger;
     if (rubikField.x !== undefined) {
         // rubikFieldDiv.id = `r_${rubikField.x}${rubikField.y}`;
-
         rubikFieldDiv.className = `rubik_field ${rubikField.special}`;
         //rubikFieldDiv.style.float = "left";
         rubikFieldDiv.style.textAlign = "center";
@@ -923,7 +1011,6 @@ function createRubikFieldDiv(rubikField, x, y) {
         rubikFieldDiv.style.position = "absolute";
         rubikFieldDiv.style.top = "12px";
         rubikFieldDiv.style.left = "12px";
-
         let arrow = "";
         if (rubikField.special === "up") {
             arrow = "&uarr;";
@@ -939,12 +1026,9 @@ function createRubikFieldDiv(rubikField, x, y) {
             arrow = "&#x21BA;";
         }
         rubikFieldDiv.innerHTML = arrow;
-
     }
     return rubikFieldDiv;
-
 }
-
 
 function createChessFieldDiv(chessField) {
 
@@ -986,11 +1070,11 @@ function createChessFieldDiv(chessField) {
             let xyChessField = this.parentElement.id.split("_")[1];
             let x = parseInt(xyChessField[0]);
             let y = parseInt(xyChessField[1]);
-            let toChessFieldPosition = calcPos(x, y);
+            let toChessFieldPosition = ChessBoard.calcPos(x, y);
 
             let fromChessFieldPosition = chessBoard.fromChessField;
-            makeMove(getChessField(chessBoard, fromChessFieldPosition), getChessField(chessBoard, toChessFieldPosition));
-            aiMove();
+            makeMove(chessBoard.getChessField(fromChessFieldPosition), chessBoard.getChessField(toChessFieldPosition), "human");
+
         };
         chessFieldDiv.appendChild(moveMarkerDiv);
 
@@ -1003,14 +1087,14 @@ function aiMove() {
     let bestMove = chess_ai.calculateBestMove(chessBoard);
     let currentX = bestMove["x"];
     let currentY = bestMove["y"];
-    let currentPos = calcPos(bestMove["x"], bestMove["y"]);
+    let currentPos = ChessBoard.calcPos(bestMove["x"], bestMove["y"]);
 
     let toField = bestMove[`${currentX}_${currentY}`];
     let toX = toField["x"];
     let toY = toField["y"];
-    let toPos = calcPos(toField["x"], toField["y"]);
-    debugger;
-    makeMove(getChessField(chessBoard, currentPos), getChessField(chessBoard, toPos));
+    let toPos = ChessBoard.calcPos(toField["x"], toField["y"]);
+    // debugger;
+    makeMove(chessBoard.getChessField(currentPos), chessBoard.getChessField(toPos), "ai");
 
 }
 
@@ -1092,9 +1176,9 @@ function appendStyle() {
 function moveClockwise(x, y) {
     let poss = [];
     if (x === 0 && y === 2) { //1
-        poss.push(calcPos(x + 1, y));
-        poss.push(calcPos(x, y + 1));
-        poss.push(calcPos(x + 1, y + 1));
+        poss.push(ChessBoard.calcPos(x + 1, y));
+        poss.push(ChessBoard.calcPos(x, y + 1));
+        poss.push(ChessBoard.calcPos(x + 1, y + 1));
         let fig3 = chessBoard.chessFields[poss[2]].figure;
         let fig2 = chessBoard.chessFields[poss[1]].figure;
         let fig1 = chessBoard.chessFields[poss[0]].figure;
@@ -1112,11 +1196,11 @@ function moveClockwise(x, y) {
         chessBoard.chessFields[poss[2]].rubikField = rub1;
 
     } else if (x >= 1 && x <= 6 && y === 2) {//2
-        poss.push(calcPos(x - 1, y));
-        poss.push(calcPos(x + 1, y));
-        poss.push(calcPos(x - 1, y + 1));
-        poss.push(calcPos(x, y + 1));
-        poss.push(calcPos(x + 1, y + 1));
+        poss.push(ChessBoard.calcPos(x - 1, y));
+        poss.push(ChessBoard.calcPos(x + 1, y));
+        poss.push(ChessBoard.calcPos(x - 1, y + 1));
+        poss.push(ChessBoard.calcPos(x, y + 1));
+        poss.push(ChessBoard.calcPos(x + 1, y + 1));
 
         let fig5 = chessBoard.chessFields[poss[4]].figure;
         let fig4 = chessBoard.chessFields[poss[3]].figure;
@@ -1144,9 +1228,9 @@ function moveClockwise(x, y) {
 
     } else if (x === 7 && y === 2) {//3
 
-        poss.push(calcPos(x - 1, y));
-        poss.push(calcPos(x - 1, y + 1));
-        poss.push(calcPos(x, y + 1));
+        poss.push(ChessBoard.calcPos(x - 1, y));
+        poss.push(ChessBoard.calcPos(x - 1, y + 1));
+        poss.push(ChessBoard.calcPos(x, y + 1));
         let fig3 = chessBoard.chessFields[poss[2]].figure;
         let fig2 = chessBoard.chessFields[poss[1]].figure;
         let fig1 = chessBoard.chessFields[poss[0]].figure;
@@ -1164,11 +1248,11 @@ function moveClockwise(x, y) {
         chessBoard.chessFields[poss[2]].rubikField = rub1;
     } else if ((x === 0 && y === 3) || (x === 0 && y === 4)) {//4
 
-        poss.push(calcPos(x, y - 1));
-        poss.push(calcPos(x + 1, y - 1));
-        poss.push(calcPos(x + 1, y));
-        poss.push(calcPos(x, y + 1));
-        poss.push(calcPos(x + 1, y + 1));
+        poss.push(ChessBoard.calcPos(x, y - 1));
+        poss.push(ChessBoard.calcPos(x + 1, y - 1));
+        poss.push(ChessBoard.calcPos(x + 1, y));
+        poss.push(ChessBoard.calcPos(x, y + 1));
+        poss.push(ChessBoard.calcPos(x + 1, y + 1));
 
         let fig5 = chessBoard.chessFields[poss[4]].figure;
         let fig4 = chessBoard.chessFields[poss[3]].figure;
@@ -1196,14 +1280,14 @@ function moveClockwise(x, y) {
 
     } else if ((x >= 1 && x <= 6 && y === 3) || (x >= 1 && x <= 6 && y === 4)) {//5
 
-        poss.push(calcPos(x - 1, y - 1));
-        poss.push(calcPos(x, y - 1));
-        poss.push(calcPos(x + 1, y - 1));
-        poss.push(calcPos(x - 1, y));
-        poss.push(calcPos(x + 1, y));
-        poss.push(calcPos(x - 1, y + 1));
-        poss.push(calcPos(x, y + 1));
-        poss.push(calcPos(x + 1, y + 1));
+        poss.push(ChessBoard.calcPos(x - 1, y - 1));
+        poss.push(ChessBoard.calcPos(x, y - 1));
+        poss.push(ChessBoard.calcPos(x + 1, y - 1));
+        poss.push(ChessBoard.calcPos(x - 1, y));
+        poss.push(ChessBoard.calcPos(x + 1, y));
+        poss.push(ChessBoard.calcPos(x - 1, y + 1));
+        poss.push(ChessBoard.calcPos(x, y + 1));
+        poss.push(ChessBoard.calcPos(x + 1, y + 1));
 
         let fig8 = chessBoard.chessFields[poss[7]].figure;
         let fig7 = chessBoard.chessFields[poss[6]].figure;
@@ -1242,11 +1326,11 @@ function moveClockwise(x, y) {
         chessBoard.chessFields[poss[7]].rubikField = rub5;
     } else if ((x === 7 && y === 3) || (x === 7 && y === 4)) {//6
 
-        poss.push(calcPos(x - 1, y - 1));
-        poss.push(calcPos(x, y - 1));
-        poss.push(calcPos(x - 1, y));
-        poss.push(calcPos(x - 1, y + 1));
-        poss.push(calcPos(x, y + 1));
+        poss.push(ChessBoard.calcPos(x - 1, y - 1));
+        poss.push(ChessBoard.calcPos(x, y - 1));
+        poss.push(ChessBoard.calcPos(x - 1, y));
+        poss.push(ChessBoard.calcPos(x - 1, y + 1));
+        poss.push(ChessBoard.calcPos(x, y + 1));
 
         let fig5 = chessBoard.chessFields[poss[4]].figure;
         let fig4 = chessBoard.chessFields[poss[3]].figure;
@@ -1274,9 +1358,9 @@ function moveClockwise(x, y) {
 
     } else if (x === 0 && y === 5) {//7
 
-        poss.push(calcPos(x, y - 1));
-        poss.push(calcPos(x + 1, y - 1));
-        poss.push(calcPos(x + 1, y));
+        poss.push(ChessBoard.calcPos(x, y - 1));
+        poss.push(ChessBoard.calcPos(x + 1, y - 1));
+        poss.push(ChessBoard.calcPos(x + 1, y));
         let fig3 = chessBoard.chessFields[poss[2]].figure;
         let fig2 = chessBoard.chessFields[poss[1]].figure;
         let fig1 = chessBoard.chessFields[poss[0]].figure;
@@ -1294,11 +1378,11 @@ function moveClockwise(x, y) {
         chessBoard.chessFields[poss[2]].rubikField = rub2;
     } else if (x >= 1 && x <= 6 && y === 5) {//8
 
-        poss.push(calcPos(x - 1, y - 1));
-        poss.push(calcPos(x, y - 1));
-        poss.push(calcPos(x + 1, y - 1));
-        poss.push(calcPos(x - 1, y));
-        poss.push(calcPos(x + 1, y));
+        poss.push(ChessBoard.calcPos(x - 1, y - 1));
+        poss.push(ChessBoard.calcPos(x, y - 1));
+        poss.push(ChessBoard.calcPos(x + 1, y - 1));
+        poss.push(ChessBoard.calcPos(x - 1, y));
+        poss.push(ChessBoard.calcPos(x + 1, y));
 
         let fig5 = chessBoard.chessFields[poss[4]].figure;
         let fig4 = chessBoard.chessFields[poss[3]].figure;
@@ -1326,9 +1410,9 @@ function moveClockwise(x, y) {
 
     } else if (x === 7 && y === 5) {//9
 
-        poss.push(calcPos(x - 1, y - 1));
-        poss.push(calcPos(x, y - 1));
-        poss.push(calcPos(x - 1, y));
+        poss.push(ChessBoard.calcPos(x - 1, y - 1));
+        poss.push(ChessBoard.calcPos(x, y - 1));
+        poss.push(ChessBoard.calcPos(x - 1, y));
         let fig3 = chessBoard.chessFields[poss[2]].figure;
         let fig2 = chessBoard.chessFields[poss[1]].figure;
         let fig1 = chessBoard.chessFields[poss[0]].figure;
@@ -1351,9 +1435,9 @@ function moveClockwise(x, y) {
 function moveAntiClockwise(x, y) {
     let poss = [];
     if (x === 0 && y === 2) { //1
-        poss.push(calcPos(x + 1, y));
-        poss.push(calcPos(x, y + 1));
-        poss.push(calcPos(x + 1, y + 1));
+        poss.push(ChessBoard.calcPos(x + 1, y));
+        poss.push(ChessBoard.calcPos(x, y + 1));
+        poss.push(ChessBoard.calcPos(x + 1, y + 1));
         let fig3 = chessBoard.chessFields[poss[2]].figure;
         let fig2 = chessBoard.chessFields[poss[1]].figure;
         let fig1 = chessBoard.chessFields[poss[0]].figure;
@@ -1371,11 +1455,11 @@ function moveAntiClockwise(x, y) {
         chessBoard.chessFields[poss[2]].rubikField = rub2;
 
     } else if (x >= 1 && x <= 6 && y === 2) {//2
-        poss.push(calcPos(x - 1, y));
-        poss.push(calcPos(x + 1, y));
-        poss.push(calcPos(x - 1, y + 1));
-        poss.push(calcPos(x, y + 1));
-        poss.push(calcPos(x + 1, y + 1));
+        poss.push(ChessBoard.calcPos(x - 1, y));
+        poss.push(ChessBoard.calcPos(x + 1, y));
+        poss.push(ChessBoard.calcPos(x - 1, y + 1));
+        poss.push(ChessBoard.calcPos(x, y + 1));
+        poss.push(ChessBoard.calcPos(x + 1, y + 1));
 
         let fig5 = chessBoard.chessFields[poss[4]].figure;
         let fig4 = chessBoard.chessFields[poss[3]].figure;
@@ -1403,9 +1487,9 @@ function moveAntiClockwise(x, y) {
 
     } else if (x === 7 && y === 2) {//3
 
-        poss.push(calcPos(x - 1, y));
-        poss.push(calcPos(x - 1, y + 1));
-        poss.push(calcPos(x, y + 1));
+        poss.push(ChessBoard.calcPos(x - 1, y));
+        poss.push(ChessBoard.calcPos(x - 1, y + 1));
+        poss.push(ChessBoard.calcPos(x, y + 1));
         let fig3 = chessBoard.chessFields[poss[2]].figure;
         let fig2 = chessBoard.chessFields[poss[1]].figure;
         let fig1 = chessBoard.chessFields[poss[0]].figure;
@@ -1423,11 +1507,11 @@ function moveAntiClockwise(x, y) {
         chessBoard.chessFields[poss[2]].rubikField = rub2;
     } else if ((x === 0 && y === 3) || (x === 0 && y === 4)) {//4
 
-        poss.push(calcPos(x, y - 1));
-        poss.push(calcPos(x + 1, y - 1));
-        poss.push(calcPos(x + 1, y));
-        poss.push(calcPos(x, y + 1));
-        poss.push(calcPos(x + 1, y + 1));
+        poss.push(ChessBoard.calcPos(x, y - 1));
+        poss.push(ChessBoard.calcPos(x + 1, y - 1));
+        poss.push(ChessBoard.calcPos(x + 1, y));
+        poss.push(ChessBoard.calcPos(x, y + 1));
+        poss.push(ChessBoard.calcPos(x + 1, y + 1));
 
         let fig5 = chessBoard.chessFields[poss[4]].figure;
         let fig4 = chessBoard.chessFields[poss[3]].figure;
@@ -1455,14 +1539,14 @@ function moveAntiClockwise(x, y) {
 
     } else if ((x >= 1 && x <= 6 && y === 3) || (x >= 1 && x <= 6 && y === 4)) {//5
 
-        poss.push(calcPos(x - 1, y - 1));
-        poss.push(calcPos(x, y - 1));
-        poss.push(calcPos(x + 1, y - 1));
-        poss.push(calcPos(x - 1, y));
-        poss.push(calcPos(x + 1, y));
-        poss.push(calcPos(x - 1, y + 1));
-        poss.push(calcPos(x, y + 1));
-        poss.push(calcPos(x + 1, y + 1));
+        poss.push(ChessBoard.calcPos(x - 1, y - 1));
+        poss.push(ChessBoard.calcPos(x, y - 1));
+        poss.push(ChessBoard.calcPos(x + 1, y - 1));
+        poss.push(ChessBoard.calcPos(x - 1, y));
+        poss.push(ChessBoard.calcPos(x + 1, y));
+        poss.push(ChessBoard.calcPos(x - 1, y + 1));
+        poss.push(ChessBoard.calcPos(x, y + 1));
+        poss.push(ChessBoard.calcPos(x + 1, y + 1));
 
         let fig8 = chessBoard.chessFields[poss[7]].figure;
         let fig7 = chessBoard.chessFields[poss[6]].figure;
@@ -1501,11 +1585,11 @@ function moveAntiClockwise(x, y) {
         chessBoard.chessFields[poss[7]].rubikField = rub7;
     } else if ((x === 7 && y === 3) || (x === 7 && y === 4)) {//6
 
-        poss.push(calcPos(x - 1, y - 1));
-        poss.push(calcPos(x, y - 1));
-        poss.push(calcPos(x - 1, y));
-        poss.push(calcPos(x - 1, y + 1));
-        poss.push(calcPos(x, y + 1));
+        poss.push(ChessBoard.calcPos(x - 1, y - 1));
+        poss.push(ChessBoard.calcPos(x, y - 1));
+        poss.push(ChessBoard.calcPos(x - 1, y));
+        poss.push(ChessBoard.calcPos(x - 1, y + 1));
+        poss.push(ChessBoard.calcPos(x, y + 1));
 
         let fig5 = chessBoard.chessFields[poss[4]].figure;
         let fig4 = chessBoard.chessFields[poss[3]].figure;
@@ -1533,9 +1617,9 @@ function moveAntiClockwise(x, y) {
 
     } else if (x === 0 && y === 5) {//7
 
-        poss.push(calcPos(x, y - 1));
-        poss.push(calcPos(x + 1, y - 1));
-        poss.push(calcPos(x + 1, y));
+        poss.push(ChessBoard.calcPos(x, y - 1));
+        poss.push(ChessBoard.calcPos(x + 1, y - 1));
+        poss.push(ChessBoard.calcPos(x + 1, y));
         let fig3 = chessBoard.chessFields[poss[2]].figure;
         let fig2 = chessBoard.chessFields[poss[1]].figure;
         let fig1 = chessBoard.chessFields[poss[0]].figure;
@@ -1553,11 +1637,11 @@ function moveAntiClockwise(x, y) {
         chessBoard.chessFields[poss[2]].rubikField = rub1;
     } else if (x >= 1 && x <= 6 && y === 5) {//8
 
-        poss.push(calcPos(x - 1, y - 1));
-        poss.push(calcPos(x, y - 1));
-        poss.push(calcPos(x + 1, y - 1));
-        poss.push(calcPos(x - 1, y));
-        poss.push(calcPos(x + 1, y));
+        poss.push(ChessBoard.calcPos(x - 1, y - 1));
+        poss.push(ChessBoard.calcPos(x, y - 1));
+        poss.push(ChessBoard.calcPos(x + 1, y - 1));
+        poss.push(ChessBoard.calcPos(x - 1, y));
+        poss.push(ChessBoard.calcPos(x + 1, y));
 
         let fig5 = chessBoard.chessFields[poss[4]].figure;
         let fig4 = chessBoard.chessFields[poss[3]].figure;
@@ -1585,9 +1669,9 @@ function moveAntiClockwise(x, y) {
 
     } else if (x === 7 && y === 5) {//9
 
-        poss.push(calcPos(x - 1, y - 1));
-        poss.push(calcPos(x, y - 1));
-        poss.push(calcPos(x - 1, y));
+        poss.push(ChessBoard.calcPos(x - 1, y - 1));
+        poss.push(ChessBoard.calcPos(x, y - 1));
+        poss.push(ChessBoard.calcPos(x - 1, y));
         let fig3 = chessBoard.chessFields[poss[2]].figure;
         let fig2 = chessBoard.chessFields[poss[1]].figure;
         let fig1 = chessBoard.chessFields[poss[0]].figure;
@@ -1611,7 +1695,7 @@ function moveAntiClockwise(x, y) {
 function moveUp(x) {
     let poss = [];
     for (let y = 2; y < 6; y++) {
-        let pos = calcPos(x, y);
+        let pos = ChessBoard.calcPos(x, y);
         poss.push(pos);
 //        console.log(`pos ${pos}`);
 
@@ -1642,7 +1726,7 @@ function moveUp(x) {
 function moveDown(x) {
     let poss = [];
     for (let y = 2; y < 6; y++) {
-        let pos = calcPos(x, y);
+        let pos = ChessBoard.calcPos(x, y);
         poss.push(pos);
         console.log(`pos ${pos}`);
 
@@ -1674,7 +1758,7 @@ function moveRight(y) {
 
     let poss = [];
     for (let x = 0; x < 8; x++) {
-        let pos = calcPos(x, y);
+        let pos = ChessBoard.calcPos(x, y);
         poss.push(pos);
         console.log(`pos ${pos}`);
 
@@ -1722,7 +1806,7 @@ function moveLeft(y) {
 
     let poss = [];
     for (let x = 0; x < 8; x++) {
-        let pos = calcPos(x, y);
+        let pos = ChessBoard.calcPos(x, y);
         poss.push(pos);
         console.log(`pos ${pos}`);
 
@@ -1768,39 +1852,94 @@ function moveLeft(y) {
 
 
 let chess_ai = {
+        positionCount: 0,
+        getBestMove: function (calcBoard) {
+
+
+            chess_ai.positionCount = 0;
+            let depth = 3;
+            // let depth = parseInt($('#search-depth').find(':selected').text());
+
+            let d = new Date().getTime();
+            let bestMove = chess_ai.minimaxRoot(depth, calcBoard, true);
+            let d2 = new Date().getTime();
+            let moveTime = (d2 - d);
+            let positionsPerS = (chess_ai.positionCount * 1000 / moveTime);
+
+            console.log(`chess_ai.positionCount ${chess_ai.positionCount}`);
+            console.log(`positionsPerS ${positionsPerS}`);
+            return bestMove;
+
+        },
         calculateBestMove: function (calcBoard) {
-
-
             let bestMove = {};
             //use any negative large number
             let bestValue = 9999;
-
             let calcBoardCopy = deepCopy(calcBoard);
-
             // let calcBoardCopy = {...calcBoard};
-
             for (let x = 0; x < 8; x++) {
                 for (let y = 0; y < 8; y++) {
-                    let pos = calcPos(x, y);
+                    let pos = ChessBoard.calcPos(x, y);
                     let figure = calcBoardCopy.chessFields[pos].figure;
-
                     if (figure !== undefined && figure.color === "black" && figure.calculated === false) {
-                        let moves = chess_ai.getPossibleMovesForFigure(figure, x, y);
+                        let moves = figure.getPossibleMoves(x, y,chessBoard);
                         // for (let j = 0; j < moves.length; j++) {
-                        for (let j = 1; j >=0; j--) {
+                        for (let j = 1; j >= 0; j--) {
                             let moveList = moves[j];
                             for (let i = 0; i < moveList.length; i++) {
                                 let field = moveList[i];
-                                calcBoardCopy = deepCopy(calcBoard);
-                                let currentChessField = getChessField(calcBoardCopy, calcPos(x, y));
-                                debugger;
+                                calcBoardCopy = deepCopy();
+                                let currentChessField = chessBoard.getChessField(calcBoardCopy, ChessBoard.calcPos(x, y));
+                                // debugger;
 
                                 figure.calculated = true;
-                                calcBoardCopy.chessFields[calcPos(field.x, field.y)].figure = figure;
-                                calcBoardCopy.chessFields[calcPos(currentChessField.x, currentChessField.y)].figure = undefined;
+                                calcBoardCopy.chessFields[ChessBoard.calcPos(field.x, field.y)].figure = figure;
+                                calcBoardCopy.chessFields[ChessBoard.calcPos(currentChessField.x, currentChessField.y)].figure = undefined;
 
-                                let boardValue = chess_ai.evaluateBoard(calcBoardCopy);
-                                calcBoardCopy = deepCopy(calcBoard);
+                                let boardValue = calcBoardCopy.evaluateBoard();
+                                calcBoardCopy = deepCopy();
+                                if (boardValue < bestValue) {
+                                    bestValue = boardValue;
+                                    bestMove[`${x}_${y}`] = field;
+                                    bestMove['x'] = x;
+                                    bestMove['y'] = y;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            console.log(`bestMove ${bestMove.toString()}`);
+            return bestMove;
+        },
+
+        minimaxRoot: function (depth, calcBoard, isMaximisingPlayer) {
+            let bestMove = {};
+            //use any negative large number
+            let bestValue = 9999;
+            let calcBoardCopy = deepCopy();
+            for (let x = 0; x < 8; x++) {
+                for (let y = 0; y < 8; y++) {
+                    let pos = ChessBoard.calcPos(x, y);
+                    let figure = calcBoardCopy.chessFields[pos].figure;
+
+                    if (figure !== undefined && figure.color === "black" && figure.calculated === false) {
+                        let moves = figure.getPossibleMoves(x, y,chessBoard);
+                        // for (let j = 0; j < moves.length; j++) {
+                        for (let j = 1; j >= 0; j--) {
+                            let moveList = moves[j];
+                            for (let i = 0; i < moveList.length; i++) {
+                                let field = moveList[i];
+                                calcBoardCopy = deepCopy();
+                                let currentChessField = calcBoardCopy.getChessField(ChessBoard.calcPos(x, y));
+                                // debugger;
+
+                                figure.calculated = true;
+                                calcBoardCopy.chessFields[ChessBoard.calcPos(field.x, field.y)].figure = figure;
+                                calcBoardCopy.chessFields[ChessBoard.calcPos(currentChessField.x, currentChessField.y)].figure = undefined;
+
+                                let boardValue = calcBoardCopy.evaluateBoard();
+                                calcBoardCopy = deepCopy();
                                 if (boardValue < bestValue) {
                                     bestValue = boardValue;
                                     bestMove[`${x}_${y}`] = field;
@@ -1818,151 +1957,130 @@ let chess_ai = {
             console.log(`bestMove ${bestMove.toString()}`);
 
             return bestMove;
-
         },
-        calculateBestMoveOld: function (game) {
 
-            var newGameMoves = game.ugly_moves();
-            var bestMove = null;
-            //use any negative large number
-            var bestValue = -9999;
-
-            for (var i = 0; i < newGameMoves.length; i++) {
-                var newGameMove = newGameMoves[i];
-                game.ugly_move(newGameMove);
-
-                //take the negative as AI plays as black
-                var boardValue = -chess_ai.evaluateBoard(game.board());
-                game.undo();
-                if (boardValue > bestValue) {
-                    bestValue = boardValue;
-                    bestMove = newGameMove
-                }
+        minimax: function (depth, calcBoardCopy, alpha, beta, isMaximisingPlayer) {
+            chess_ai.positionCount++;
+            if (depth === 0) {
+                return calcBoardCopy.evaluateBoard();
             }
 
-            return bestMove;
+            let newGameMoves = chessBoard.getPossibleMoves();
 
-        }
-        ,
-        evaluateBoard: function (chessBoard) {
-            let totalEvaluation = 0;
-            let figCount = 0;
-            for (let x = 0; x < 8; x++) {
-                for (let y = 0; y < 8; y++) {
-                    let pos = calcPos(x, y);
-                    let figure = chessBoard.chessFields[pos].figure;
-
-                    if (figure !== undefined && figure !== null) {
-                        figCount++;
-                        let value = figure.value;
-                        totalEvaluation = totalEvaluation + value;
+            if (isMaximisingPlayer) {
+                let bestMove = -9999;
+                for (let i = 0; i < newGameMoves.length; i++) {
+                    let newGameMove = newGameMoves[i];
+                    calcBoardCopy.ugly_move(newGameMoves[i]);
+                    bestMove = Math.max(bestMove, calcBoardCopy.minimax(depth - 1, calcBoardCopy, alpha, beta, !isMaximisingPlayer));
+                    calcBoardCopy.undo();
+                    alpha = Math.max(alpha, bestMove);
+                    if (beta <= alpha) {
+                        return bestMove;
                     }
-
                 }
-            }
-            console.log(`totalEvaluation ${totalEvaluation} figCount ${figCount}`);
-            return totalEvaluation;
-        }
-        ,
-        getPossibleMovesForFigure: function (figure, x, y) {
-            let possibleMoves = [];
-            let pMap = {};
-
-
-            if (figure.type === "rock") {
-                possibleMoves = getRockMoves(figure, x, y);
-
-            } else if (figure.type === "knight") {
-                possibleMoves = getKnightMoves(figure, x, y);
-            } else if (figure.type === "bishop") {
-                possibleMoves = getBishopMoves(figure, x, y);
-            } else if (figure.type === "queen") {
-                possibleMoves = getQueenMoves(figure, x, y);
-            } else if (figure.type === "king") {
-                possibleMoves = getKingMoves(figure, x, y);
-            } else if (figure.type === "pawn") {
-                possibleMoves = getPawnMoves(figure, x, y);
-            }
-            pMap[`${x}_${y}`] = possibleMoves;//[moves,attacks]
-            return possibleMoves;//[moves,attacks]
-        }
-        ,
-        getPossibleMoves: function (chessBoard, color) {
-            let possibleMoves = [];
-            let pMap = {};
-            for (let x = 0; x < 8; x++) {
-                for (let y = 0; y < 8; y++) {
-                    let pos = calcPos(x, y);
-                    let figure = chessBoard.chessFields[pos].figure;
-
-                    if (figure !== undefined) {
-
-
-                        if (figure.type === "rock") {
-                            possibleMoves = getRockMoves(figure, x, y);
-
-                        } else if (figure.type === "knight") {
-                            possibleMoves = getKnightMoves(figure, x, y);
-                        } else if (figure.type === "bishop") {
-                            possibleMoves = getBishopMoves(figure, x, y);
-                        } else if (figure.type === "queen") {
-                            possibleMoves = getQueenMoves(figure, x, y);
-                        } else if (figure.type === "king") {
-                            possibleMoves = getKingMoves(figure, x, y);
-                        } else if (figure.type === "pawn") {
-                            possibleMoves = getPawnMoves(figure, x, y);
-                        }
-                        pMap[`${x}_${y}`] = possibleMoves;
-
-
+                return bestMove;
+            } else {
+                let bestMove = 9999;
+                for (let i = 0; i < newGameMoves.length; i++) {
+                    calcBoardCopy.ugly_move(newGameMoves[i]);
+                    bestMove = Math.min(bestMove, calcBoardCopy.minimax(depth - 1, calcBoardCopy, alpha, beta, !isMaximisingPlayer));
+                    calcBoardCopy.undo();
+                    beta = Math.min(beta, bestMove);
+                    if (beta <= alpha) {
+                        return bestMove;
                     }
-
                 }
+                return bestMove;
             }
-            //return possibleMoves;
+        },
 
-            return pMap;
-
-        }
 
     }
 ;
 
 
-function deepCopy(obj) {
-    var copy;
-
-    // Handle the 3 simple types, and null or undefined
-    if (null == obj || "object" != typeof obj) return obj;
-
-    // Handle Date
-    if (obj instanceof Date) {
-        copy = new Date();
-        copy.setTime(obj.getTime());
-        return copy;
-    }
-
-    // Handle Array
-    if (obj instanceof Array) {
-        copy = [];
-        for (var i = 0, len = obj.length; i < len; i++) {
-            copy[i] = deepCopy(obj[i]);
-        }
-        return copy;
-    }
-
-    // Handle Object
-    if (obj instanceof Object) {
-        copy = {};
-        for (var attr in obj) {
-            if (obj.hasOwnProperty(attr)) copy[attr] = deepCopy(obj[attr]);
-        }
-        return copy;
-    }
-
-    throw new Error("Unable to copy obj! Its type isn't supported.");
-}
-
 init();
 
 
+/*   calculateBestMoveOld: function (game) {
+
+   let newGameMoves = game.ugly_moves();
+   let bestMove = null;
+   //use any negative large number
+   let bestValue = -9999;
+
+   for (let i = 0; i < newGameMoves.length; i++) {
+       let newGameMove = newGameMoves[i];
+       game.ugly_move(newGameMove);
+
+       //take the negative as AI plays as black
+       let boardValue = -chess_ai.evaluateBoard(game.board());
+       game.undo();
+       if (boardValue > bestValue) {
+           bestValue = boardValue;
+           bestMove = newGameMove
+       }
+   }
+
+   return bestMove;
+
+},
+*/
+
+/*      minimaxRootOld: function (depth, calcBoard, isMaximisingPlayer) {
+
+          let newGameMoves = game.ugly_moves();
+          let bestMove = -9999;
+          let bestMoveFound;
+
+          for (let i = 0; i < newGameMoves.length; i++) {
+              let newGameMove = newGameMoves[i];
+              game.ugly_move(newGameMove);
+              let value = minimax(depth - 1, calcBoard, -10000, 10000, !isMaximisingPlayer);
+              game.undo();
+              if (value >= bestMove) {
+                  bestMove = value;
+                  bestMoveFound = newGameMove;
+              }
+          }
+          return bestMoveFound;
+      },
+      */
+
+/*minimaxOld: function (depth, game, alpha, beta, isMaximisingPlayer) {
+        chess_ai.positionCount++;
+        if (depth === 0) {
+            return -evaluateBoard(game.board());
+        }
+
+        let newGameMoves = game.ugly_moves();
+
+        if (isMaximisingPlayer) {
+            let bestMove = -9999;
+            for (let i = 0; i < newGameMoves.length; i++) {
+                game.ugly_move(newGameMoves[i]);
+                bestMove = Math.max(bestMove, minimax(depth - 1, game, alpha, beta, !isMaximisingPlayer));
+                game.undo();
+                alpha = Math.max(alpha, bestMove);
+                if (beta <= alpha) {
+                    return bestMove;
+                }
+            }
+            return bestMove;
+        } else {
+            let bestMove = 9999;
+            for (let i = 0; i < newGameMoves.length; i++) {
+                game.ugly_move(newGameMoves[i]);
+                bestMove = Math.min(bestMove, minimax(depth - 1, game, alpha, beta, !isMaximisingPlayer));
+                game.undo();
+                beta = Math.min(beta, bestMove);
+                if (beta <= alpha) {
+                    return bestMove;
+                }
+            }
+            return bestMove;
+        }
+    }
+    ,
+    */

@@ -19,8 +19,18 @@ class Action {
 
   // This is the key named contructor
   Action.clone(Action action)
-      : this(action.id, action.actionType, action.delta0, action.delta1, action.delta2, action.delta3, action.price, action.tomeIndex,
-      action.taxCount, action.castable, action.repeatable);
+      : this(
+      action.id,
+      action.actionType,
+      action.delta0,
+      action.delta1,
+      action.delta2,
+      action.delta3,
+      action.price,
+      action.tomeIndex,
+      action.taxCount,
+      action.castable,
+      action.repeatable);
 
   Action(this.id, this.actionType, this.delta0, this.delta1, this.delta2, this.delta3, this.price, this.tomeIndex, this.taxCount, this.castable,
       this.repeatable) {
@@ -43,14 +53,41 @@ class Action {
     return hasPos;
   }
 
-  num getDeltaSum() {
+  /*num getDeltaSum(List delta) {
     num sum = 0;
     for (int i = 0; i < delta.length; ++i) {
       sum += delta[i] * (i + 1);
     }
     return sum;
   }
+*/
+  num getDeltaSum() {
+    num sum = 0;
+    sum = (0.95 * 1 * delta[0]) + (0.95 * 2 * delta[1]) + (0.95 * 3 * delta[2]) + (0.95 * 4 * delta[3]) ;
+    return sum;
+  }
+  num getDeltaSumWithPotionAndInventory(Action potion,List inventory) {
+    num sum = 0;
+    //stderr.writeln("----getDeltaSumWithPotionAndInventory");
+    //stderr.writeln("inv $inventory");
+    //stderr.writeln("potion ${potion.delta}");
+    //stderr.writeln("this.delta ${delta}");
+    if(inventory[0] + delta[0] >= potion.delta[0] ){
+      sum += (0.95 * 1 * delta[0]);
+    }
+    if(inventory[1] + delta[1] >= potion.delta[1] ){
+      sum += (0.95 * 2 * delta[1]);
+    }
+    if(inventory[2] + delta[2] >= potion.delta[2] ){
+      sum += (0.95 * 3 * delta[2]);
+    }
+    if(inventory[3] + delta[3] >= potion.delta[3] ){
+      sum += (0.95 * 4 * delta[3]);
 
+    }
+
+    return sum;
+  }
   num getStoneAmount() {
     num sum = 0;
     for (int i = 0; i < delta.length; ++i) {
@@ -88,10 +125,15 @@ class Action {
     return safeToCast;
   }
 
+  bool isSaveToCastWithoutDelta( List inventory) {
+    dxt("-----------isSaveToCastWithoutDelta");
+
+    return ( isPayable(inventory) && willFitInventory(inventory) && (castable == 1));
+  }
   bool isSaveToCast(int deltaId, List inventory) {
     dxt("-----------isSaveToCast");
 
-    return (hasDelta(deltaId) && isPayable(inventory) && willFitInventory(inventory) && (castable == 1));
+    return (hasDelta(deltaId) && isSaveToCastWithoutDelta(inventory));
   }
 
   bool hasDelta(int deltaId) {
@@ -193,6 +235,30 @@ List<List<int>> spellsToLearn = [
   [0, 0, -1, 0]
 ];
 
+bool hasCastablePositiveSpells(List spells) {
+  bool hasPositiveSpells = false;
+  for (int i = 0; i < spells.length; ++i) {
+    Action spell = spells[i];
+    if (spell.castable == 1 && spell.hasOnlyPositiv()){
+      hasPositiveSpells = true;
+      break;
+    }
+  }
+  return hasPositiveSpells;
+}
+
+int numberOfAvailableSpells(List spells) {
+  int counter = 0;
+  for (int i = 0; i < spells.length; ++i) {
+    Action spell = spells[i];
+    if (spell.castable == 1) {
+      counter++;
+    }
+  }
+  stderr.writeln("numberOfAvailableSpells $counter");
+  return counter;
+}
+
 bool spellIsDowngrade(Action spell) {
   bool isDowngrade = false;
   // if(spell.delta[0]>0 && ((spell.delta[1]>0))|| (spell.delta[1]>0)|| (spell.delta[1]>0)){
@@ -207,7 +273,7 @@ bool spellIsInWishlist(Action spell) {
   bool isWishlist = false;
   stderr.writeln("tomeSpell.delta ${spell.delta}");
 
-  if (spell.delta[0] <= -1 || spell.delta[1] <= -1 || spell.delta[2] <= -1) {
+  if (spell.delta[0] <= -2 || spell.delta[1] <= -2 || spell.delta[2] <= -2) {
     // if (((spell.delta[0] < 0) && (spell.delta[0] <= spellToLearn[0])) ||
     //     ((spell.delta[1] < 0) && (spell.delta[1] <= spellToLearn[1])) ||
     //     ((spell.delta[2] < 0) && (spell.delta[2] <= spellToLearn[2])) ||
@@ -294,8 +360,8 @@ Action simulateBrew(List myInventory, List<Action> spells, List<Action> potions)
     List inventory = [...myInventory];
     stderr.writeln("  myInventory        ${inventory}");
     bool canPay = brew.isPayable(inventory);
-//  while (!canPay && simCounter < 15) {
-    while (!canPay) {
+    while (!canPay && simCounter < 15) {
+      //  while (!canPay) {
       // stderr.writeln("simCounter $simCounter");
 
       //stderr.writeln("                       ####WHILE round $simCounter");
@@ -305,22 +371,24 @@ Action simulateBrew(List myInventory, List<Action> spells, List<Action> potions)
       // stderr.writeln("- missingIngredients ${missingIngredients}");
 
       Action spell;
-      spell = findBestSpell(inventory, cloneSpells, missingIngredients, brew);
+      spell = findBestSpellForMissing( cloneSpells,  inventory,  brew);
+      //spell = findBestSpell(inventory, cloneSpells, missingIngredients, brew);
 
       if (spell != null) {
         List spellDeltas = spell.delta;
-        // stderr.writeln(" i b4 ${inventory}");
+        //stderr.writeln("startWhile brew PORTION ${brew.delta}");
+        //stderr.writeln(" i b4 ${inventory}");
         inventory[0] = inventory[0] + spellDeltas[0];
         inventory[1] = inventory[1] + spellDeltas[1];
         inventory[2] = inventory[2] + spellDeltas[2];
         inventory[3] = inventory[3] + spellDeltas[3];
-        // stderr.writeln("+s    ${spellDeltas}");
-        // stderr.writeln(" i Af ${inventory}");
+        stderr.writeln("+spell ${spellDeltas}");
+        //stderr.writeln(" i Af ${inventory}");
         missingIngredients = brew.findMissingIngredients(inventory);
         spell.castable = 0;
         simCounter++;
       } else {
-        // stderr.writeln("#####REST#####");
+        stderr.writeln("#####REST#####");
         rest = true;
         for (int j = 0; j < cloneSpells.length; ++j) {
           cloneSpells[j].castable = 1;
@@ -331,8 +399,8 @@ Action simulateBrew(List myInventory, List<Action> spells, List<Action> potions)
 //      //stderr.writeln("CAN PAY $canPay");
     }
     stderr.writeln("simCounter $simCounter");
-    if (simCounter >= 0 && (brew.price / simCounter) > average) {
-      // if (simCounter >= 0 && simCounter < targetSimCounter) {
+    // if (simCounter >= 0 && (brew.price / simCounter) > average) {
+    if (simCounter >= 0 && simCounter < targetSimCounter) {
       // if (simCounter >= 0 && simCounter < targetSimCounter) {
       targetSimCounter = simCounter;
       average = brew.price / simCounter;
@@ -586,8 +654,8 @@ Action simulateAllBrew(List myInventory, List<Action> spells, List<Action> potio
       // stderr.writeln("startWhile brew PORTION ${brew.delta}");
       // stderr.writeln("  myInventory        ${inventory}");
       bool canPay = brew.isPayable(inventory);
-//  while (!canPay && simCounter < 15) {
-      while (!canPay) {
+      while (!canPay && simCounter < 15) {
+//      while (!canPay) {
 //       while (!canPay && brew.price > price && simCounter < 15) {
 //         stderr.writeln("simCounter $simCounter");
 
@@ -598,7 +666,9 @@ Action simulateAllBrew(List myInventory, List<Action> spells, List<Action> potio
         // stderr.writeln("- missingIngredients ${missingIngredients}");
 
         Action spell;
-        spell = findBestSpell(inventory, cloneSpells, missingIngredients, brew);
+        spell = findBestSpellForMissing( cloneSpells,  myInventory,  brew);
+
+        //spell = findBestSpell(inventory, cloneSpells, missingIngredients, brew);
 
         if (spell != null) {
           List spellDeltas = spell.delta;
@@ -607,7 +677,7 @@ Action simulateAllBrew(List myInventory, List<Action> spells, List<Action> potio
           inventory[1] = inventory[1] + spellDeltas[1];
           inventory[2] = inventory[2] + spellDeltas[2];
           inventory[3] = inventory[3] + spellDeltas[3];
-          // stderr.writeln("+s    ${spellDeltas}");
+          stderr.writeln("+spell ${spellDeltas}");
           // stderr.writeln(" i Af ${inventory}");
           missingIngredients = brew.findMissingIngredients(inventory);
           // stderr.writeln("- missingIngredients ${missingIngredients}");
@@ -931,6 +1001,7 @@ Action findFillSpellForDelta(List spells, int deltaId, List inventory, Action po
  * the standard input according to the problem statement.
  **/
 bool toggleOn = true;
+bool castBecausePotionWasBrewed = false;
 
 void main() {
   List inputs;
@@ -974,7 +1045,18 @@ void main() {
       8]); // in the first two leagues: always 0; later: the amount of taxed tier-0 ingredients you gain from learning this spell; For brews, this is how many times you can still gain an urgency bonus
       int castable = int.parse(inputs[9]); // in the first league: always 0; later: 1 if this is a castable player spell
       int repeatable = int.parse(inputs[10]); // for the first two leagues: always 0; later: 1 if this is a repeatable player spell
-      Action a = new Action(actionId, actionType, delta0, delta1, delta2, delta3, price, tomeIndex, taxCount, castable, repeatable);
+      Action a = new Action(
+          actionId,
+          actionType,
+          delta0,
+          delta1,
+          delta2,
+          delta3,
+          price,
+          tomeIndex,
+          taxCount,
+          castable,
+          repeatable);
 
 //      dxt("a.actionType ${a.actionType}");
       if (actionType == "BREW") {
@@ -992,7 +1074,7 @@ void main() {
         actions.add(a);
       }
     }
-    if (true || !goalStillExists) {
+    if ( !goalStillExists) {
       goalPotion = null;
     }
     for (int i = 0; i < 2; i++) {
@@ -1016,15 +1098,16 @@ void main() {
       //stderr.writeln("*******START GAME*******");
       // if (shouldLearnSpell(tomeSpells, spells, opSpells, myInventory)) {
 
-      if (tomeSpells.length > 1 && spells.length <= opSpells.length+2 ||
-          tomeSpells[1].hasOnlyPositiv() && myInventory[0] > 0 ||
-          tomeSpells[2].hasOnlyPositiv() && myInventory[0] > 1) {
+      if (tomeSpells.length > 1 && spells.length <= opSpells.length ||
+          ((tomeSpells[1].hasOnlyPositiv() /*||  spellIsInWishlist(tomeSpells[1])*/) && myInventory[0] > 0) ||
+          ((tomeSpells[2].hasOnlyPositiv() /*||  spellIsInWishlist(tomeSpells[2]) */) && myInventory[0] > 1) ||
+          spellIsInWishlist(tomeSpells.first)) {
         // if (spells.length <= opSpells.length ||
 
         // if (tomeSpells[1].hasOnlyPositiv() || spellIsInWishlist(tomeSpells.first)) {
-        if (tomeSpells[1].hasOnlyPositiv()  && myInventory[0] > 0) {
+        if ((tomeSpells[1].hasOnlyPositiv() /*||  spellIsInWishlist(tomeSpells[1])*/) && myInventory[0] > 0) {
           text = "LEARN ${tomeSpells[1].id}";
-        } else if (tomeSpells[2].hasOnlyPositiv() && myInventory[0] > 1) {
+        } else if (tomeSpells[2].hasOnlyPositiv() /*|| spellIsInWishlist(tomeSpells[2])*/ && myInventory[0] > 1) {
           text = "LEARN ${tomeSpells[2].id}";
           // } else if (tomeSpells[3].hasOnlyPositiv() && myInventory[0] > 2) {
           //   text = "LEARN ${tomeSpells[3].id}";
@@ -1040,16 +1123,16 @@ void main() {
         toggleOn = !toggleOn;
       } else {
         Action spell;
-        if (true && getNumberOfItemsInInventory(myInventory) < 4) {
-          // spell = findFillerSpell(myInventory, spells, missingIngredients, potion, 3);
-          spell = findSpellWithoutPotion(myInventory, spells, opSpells, tomeSpells);
+        if (true && getNumberOfItemsInInventory(myInventory) < 3) {
+          spell = findFillerSpell(myInventory, spells, missingIngredients, potion, 3);
+          //spell = findSpellWithoutPotion(myInventory, spells, opSpells, tomeSpells);
 
           if (spell != null) {
             text = "CAST ${spell.id} ${canSpellXTime(myInventory, spell)}";
           }
         } else {
           if (text == null) {
-            stderr.writeln("findSpellForPotionÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ");
+            //stderr.writeln("findSpellForPotionÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ");
             text = findSpellForPotion(potions, myInventory, spells, opSpells, tomeSpells);
 
             // if (text == null) {
@@ -1080,10 +1163,16 @@ void main() {
       }
 
       // if (tomeSpells.length > 1 && spells.length <= 15 && toggleOn) {
-      if (text == null) {
+      if (text == null || (numberOfAvailableSpells(spells) < (opSpells.length / 2) && roundCounter > 10) ||
+          (getNumberOfItemsInInventory(myInventory) < 4 && !hasCastablePositiveSpells(spells))) {
+        // if (text == null || castBecausePotionWasBrewed || numberOfAvailableSpells(spells) < 6 && roundCounter > 10) {
         text = "REST";
         stderr.writeln("RESTRESET");
+        castBecausePotionWasBrewed = false;
       }
+    }
+    if (text.contains("BREW")) {
+      castBecausePotionWasBrewed = true;
     }
     print(text);
   }
@@ -1093,8 +1182,8 @@ String findSpellForPotion(List potions, List myInventory, List spells, List opSp
   roundCounter++;
   Action spell;
 
-  // Action potion = simulateBrew([...myInventory], [...spells], [...potions]);
-  Action potion = simulateAllBrew([...myInventory], [...spells], [...potions]);
+  Action potion = simulateBrew([...myInventory], [...spells], [...potions]);
+  //Action potion = simulateAllBrew([...myInventory], [...spells], [...potions]);
   // }
   String text;
   if (potion != null) {
@@ -1106,8 +1195,11 @@ String findSpellForPotion(List potions, List myInventory, List spells, List opSp
       text = "BREW ${potion.id}";
       potion = null;
     } else {
-      spell = findBestSpell(myInventory, spells, missingIngredients, potion);
+      spell = findBestSpellForMissing( spells,  myInventory,  potion);
+
+      //spell = findBestSpell(myInventory, spells, missingIngredients, potion);
       if (spell != null) {
+        stderr.writeln(" REAL spell ${spell.delta}");
         text = "CAST ${spell.id} ${canSpellXTime(myInventory, spell)}";
       }
     }
@@ -1121,4 +1213,57 @@ Action findSpellWithoutPotion(List inventory, List spells, List opSpells, List t
   List missingIngredients = [inventory[0] - 1, inventory[1] - 2, inventory[2] - 1, inventory[3] - 1];
   Action spell = findBestSpell(inventory, spells, missingIngredients, null);
   return spell;
+}
+
+List getPossibleSpellsForInventory(List spells, List inventory,Action potion){
+  //stderr.writeln("-----getPossibleSpellsForInventory");
+  List targetList =[];
+  for (int i = 0; i < spells.length; ++i) {
+    Action spell = spells[i];
+    if(spell.isSaveToCastWithoutDelta(inventory)
+        && spell.isSafeToCastForPotion(spell, inventory)){
+      /*if(spell.isSaveToCastWithoutDelta(inventory) ){*/
+      //stderr.writeln("spell-----${spell.delta} ${spell.getDeltaSumWithPotionAndInventory(potion,inventory)}");
+      targetList.add(spell);
+    }
+  }
+  return targetList;
+}
+Action findBestSpellForMissing(List spells, List inventory, Action potion){
+  //stderr.writeln("-----findBestSpellForMissing ${spells.length}");
+  Action targetSpell;
+
+  List possibleSpells = getPossibleSpellsForInventory(spells,inventory,potion);
+  if(possibleSpells.length > 0){
+    targetSpell = findBestSpellToGetCloser(possibleSpells,potion,inventory);
+
+  }
+
+  return targetSpell;
+}
+Action findBestSpellToGetCloser(List spells,Action potion, List inventory){
+  // stderr.writeln("-----findBestSpellToGetCloser");
+  Action targetSpell;
+  num targetMissingSum=-9999;
+  num targetSpellSum=-9999;
+
+  for (int i = 0; i < spells.length; ++i) {
+    Action spell = spells[i];
+    List missingIngredients = potion.findMissingIngredients(inventory);
+    num tmpSpellSum = spell.getDeltaSumWithPotionAndInventory(potion, inventory);
+    num tmpMissingSum = getDeltaSum(missingIngredients);
+    if(tmpMissingSum > targetMissingSum
+        || tmpMissingSum == targetMissingSum && tmpSpellSum > targetSpellSum){
+      // stderr.writeln("updateTargetSpell-----${spell.delta}");
+      targetSpell = spell;
+      targetSpellSum = tmpSpellSum;
+      targetMissingSum = tmpMissingSum;
+    }
+  }
+  return targetSpell;
+}
+num getDeltaSum(List delta) {
+  num sum = 0;
+  sum = (0.95 * 1 * delta[0]) + (0.95 * 2 * delta[1]) + (0.95 * 3 * delta[2]) + (0.95 * 4 * delta[3]) ;
+  return sum;
 }

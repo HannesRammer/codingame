@@ -20,7 +20,7 @@ class Action {
   // This is the key named contructor
   Action.clone(Action action)
       : this(action.id, action.actionType, action.delta0, action.delta1, action.delta2, action.delta3, action.price, action.tomeIndex,
-      action.taxCount, action.castable, action.repeatable);
+            action.taxCount, action.castable, action.repeatable);
 
   Action(this.id, this.actionType, this.delta0, this.delta1, this.delta2, this.delta3, this.price, this.tomeIndex, this.taxCount, this.castable,
       this.repeatable) {
@@ -238,7 +238,7 @@ class Action {
 int potionTierSize = 0;
 int roundCounter = 0;
 Action goalPotion;
-bool debug = false;
+bool debug = true;
 
 int price = 0;
 int simCounter = 0;
@@ -655,7 +655,7 @@ Action simulateAllBrew(List myInventory, List<Action> spells, List<Action> potio
   }
 
   //List potionCombinations = new List.from(potionCombinations2)..addAll(potionCombinations3)..addAll(potionCombinations5);
-  List potionCombinations = potionCombinations3;
+  List potionCombinations = potionCombinations5;
   for (int j = 0; j < potionCombinations.length; ++j) {
 //    clonePotions.add(Action.clone(potions[j]));
     simCounter = 0;
@@ -663,7 +663,7 @@ Action simulateAllBrew(List myInventory, List<Action> spells, List<Action> potio
     List potionOrder = potionCombinations[j];
     brewSum = 0;
     for (int k = 0; k < potionOrder.length; ++k) {
-      dxt("${spaceholder}simCounterInBetween $simCounter");
+      stderr.writeln("${spaceholder}simCounterInBetween $simCounter");
 
       int potionPosition = potionOrder[k];
       Action brew = potions[potionPosition - 1];
@@ -676,11 +676,11 @@ Action simulateAllBrew(List myInventory, List<Action> spells, List<Action> potio
 //       while (!canPay && brew.price > price && simCounter < 15) {
         dxt("${spaceholder}simCounter $simCounter");
 
-        dxt("${spaceholder}####WHILE round $simCounter");
-        dxt("${spaceholder}  myInventory        ${inventory}");
-        dxt("${spaceholder}- potion             ${brew.delta}");
+        stderr.writeln("${spaceholder}####WHILE round $simCounter");
+        stderr.writeln("${spaceholder}  myInventory        ${inventory}");
+        stderr.writeln("${spaceholder}- potion             ${brew.delta}");
         List missingIngredients = brew.findMissingIngredients(inventory, "--");
-        dxt("${spaceholder}- missingIngredients ${missingIngredients}");
+        stderr.writeln("${spaceholder}- missingIngredients ${missingIngredients}");
 
         Action spell;
         spell = findBestSpellForMissing(cloneSpells, inventory, brew, spaceholder + "--");
@@ -689,20 +689,20 @@ Action simulateAllBrew(List myInventory, List<Action> spells, List<Action> potio
 
         if (spell != null) {
           List spellDeltas = spell.delta;
-          dxt("${spaceholder} i b4 ${inventory}");
+          stderr.writeln("${spaceholder} i b4 ${inventory}");
           inventory[0] = inventory[0] + spellDeltas[0];
           inventory[1] = inventory[1] + spellDeltas[1];
           inventory[2] = inventory[2] + spellDeltas[2];
           inventory[3] = inventory[3] + spellDeltas[3];
-          dxt("${spaceholder}+spell ${spellDeltas}");
-          dxt("${spaceholder} i Af ${inventory}");
+          stderr.writeln("${spaceholder}+spell ${spellDeltas}");
+          stderr.writeln("${spaceholder} i Af ${inventory}");
           missingIngredients = brew.findMissingIngredients(inventory, "--");
-          dxt("${spaceholder}- missingIngredients ${missingIngredients}");
+          stderr.writeln("${spaceholder}- missingIngredients ${missingIngredients}");
 
           spell.castable = 0;
           simCounter++;
         } else {
-          dxt("${spaceholder}#####REST#####");
+          stderr.writeln("${spaceholder}#####REST#####");
           rest = true;
           for (int m = 0; m < cloneSpells.length; ++m) {
             cloneSpells[m].castable = 1;
@@ -710,7 +710,7 @@ Action simulateAllBrew(List myInventory, List<Action> spells, List<Action> potio
           simCounter++;
         }
         canPay = brew.isPayable(inventory, spaceholder + "--");
-        dxt("${spaceholder}CAN PAY $canPay");
+        stderr.writeln("${spaceholder}CAN PAY $canPay");
       }
     }
 
@@ -1045,11 +1045,11 @@ void main() {
     myInventory = [];
     enemyInventory = [];
     missingIngredients = [0, 0, 0, 0];
-    roundCounter++;
+
     bool goalStillExists = false;
-    String readLine1 = stdin.readLineSync(); // the number of spells and recipes in play
-    stderr.writeln("the number of spells and recipes in play $readLine1");
-    int actionCount = int.parse(readLine1); // the number of spells and recipes in play
+    // String readLine1 = stdin.readLineSync(); // the number of spells and recipes in play
+    // stderr.writeln("the number of spells and recipes in play $readLine1");
+    // int actionCount = int.parse(readLine1); // the number of spells and recipes in play
     List<String> inputActions = [
       "66 BREW -2 -1 0 -1 12 3 4 0 0",
       "50 BREW -2 0 0 -2 11 1 4 0 0",
@@ -1088,10 +1088,10 @@ void main() {
       "99 OPPONENT_CAST 1 1 0 0 0 -1 -1 1 0",
       "101 OPPONENT_CAST 1 -3 1 1 0 -1 -1 1 1"
     ];
-    // for (int i = 0; i < inputActions.length; i++) {
-    for (int i = 0; i < actionCount; i++) {
-      String readLine2 = stdin.readLineSync();
-      // String readLine2 = inputActions[i];
+    for (int i = 0; i < inputActions.length; i++) {
+      // for (int i = 0; i < actionCount; i++) {
+      //   String readLine2 = stdin.readLineSync();
+      String readLine2 = inputActions[i];
       dxt("${spaceholder}$readLine2");
       inputs = readLine2.split(' ');
       int actionId = int.parse(inputs[0]); // the unique ID of this spell or recipe
@@ -1102,9 +1102,9 @@ void main() {
       int delta3 = int.parse(inputs[5]); // tier-3 ingredient change
       int price = int.parse(inputs[6]); // the price in rupees if this is a potion
       int tomeIndex = int.parse(inputs[
-      7]); // in the first two leagues: always 0; later: the index in the tome if this is a tome spell, equal to the read-ahead tax; For brews, this is the value of the current urgency bonus
+          7]); // in the first two leagues: always 0; later: the index in the tome if this is a tome spell, equal to the read-ahead tax; For brews, this is the value of the current urgency bonus
       int taxCount = int.parse(inputs[
-      8]); // in the first two leagues: always 0; later: the amount of taxed tier-0 ingredients you gain from learning this spell; For brews, this is how many times you can still gain an urgency bonus
+          8]); // in the first two leagues: always 0; later: the amount of taxed tier-0 ingredients you gain from learning this spell; For brews, this is how many times you can still gain an urgency bonus
       int castable = int.parse(inputs[9]); // in the first league: always 0; later: 1 if this is a castable player spell
       int repeatable = int.parse(inputs[10]); // for the first two leagues: always 0; later: 1 if this is a repeatable player spell
       Action a = new Action(actionId, actionType, delta0, delta1, delta2, delta3, price, tomeIndex, taxCount, castable, repeatable);
@@ -1129,10 +1129,10 @@ void main() {
       goalPotion = null;
     }
     List<String> inputStrings = ["6 0 0 0 0", "10 0 0 0 0"];
-    // for (int i = 0; i < inputStrings.length; i++) {
-    for (int i = 0; i < 2; i++) {
-      String readLine3 = stdin.readLineSync();
-      // String readLine3 = inputStrings[i];
+    for (int i = 0; i < inputStrings.length; i++) {
+      // for (int i = 0; i < 2; i++) {
+      //   String readLine3 = stdin.readLineSync();
+      String readLine3 = inputStrings[i];
       dxt("${spaceholder}inputString INVENTORY: $readLine3");
       inputs = readLine3.split(' ');
 
@@ -1155,11 +1155,11 @@ void main() {
     } else {
       stderr.writeln("${spaceholder}*******START GAME*******");
       // if (shouldLearnSpell(tomeSpells, spells, opSpells, myInventory)) {
-      stderr.writeln("ROUNDCOUNTER $roundCounter");
-      if (tomeSpells.length > 1 && roundCounter < 15 && (spells.length <= opSpells.length  ||
+
+      if (tomeSpells.length > 1 && spells.length <= opSpells.length ||
           ((tomeSpells[1].hasOnlyPositiv() /*||  spellIsInWishlist(tomeSpells[1])*/) && myInventory[0] > 0) ||
           ((tomeSpells[2].hasOnlyPositiv() /*||  spellIsInWishlist(tomeSpells[2]) */) && myInventory[0] > 1) ||
-          spellIsInWishlist(tomeSpells.first, spaceholder + "--"))) {
+          spellIsInWishlist(tomeSpells.first, spaceholder + "--")) {
         // if (spells.length <= opSpells.length ||
 
         // if (tomeSpells[1].hasOnlyPositiv() || spellIsInWishlist(tomeSpells.first)) {
@@ -1170,10 +1170,10 @@ void main() {
           // } else if (tomeSpells[3].hasOnlyPositiv() && myInventory[0] > 2) {
           //   text = "LEARN ${tomeSpells[3].id}";
         } else
-          // if (tomeSpells[4].hasOnlyPositiv() && myInventory[0] > 3) {
-          //   text = "LEARN ${tomeSpells[4].id}";
-          // }else
-            {
+        // if (tomeSpells[4].hasOnlyPositiv() && myInventory[0] > 3) {
+        //   text = "LEARN ${tomeSpells[4].id}";
+        // }else
+        {
           text = "LEARN ${tomeSpells.first.id}";
         }
         stderr.writeln("${spaceholder}onlyPos || WishSpell || FKIRST");
@@ -1224,7 +1224,7 @@ void main() {
       // if (tomeSpells.length > 1 && spells.length <= 15 && toggleOn) {
       if (text == null ||
           (numberOfAvailableSpells(spells, spaceholder + "--") < (opSpells.length / 2) && roundCounter > 10) ||
-          (getNumberOfItemsInInventory(myInventory) < 3 && !hasCastablePositiveSpells(spells))) {
+          (getNumberOfItemsInInventory(myInventory) < 4 && !hasCastablePositiveSpells(spells))) {
         // if (text == null || castBecausePotionWasBrewed || numberOfAvailableSpells(spells) < 6 && roundCounter > 10) {
         text = "REST";
         stderr.writeln("${spaceholder}RESTRESET");
@@ -1261,12 +1261,12 @@ Action findMostExpensiveBrew(List actions, String spaceholder) {
 }
 
 String findSpellForPotion(List potions, List myInventory, List spells, List opSpells, List tomeSpells, String spaceholder) {
-
+  roundCounter++;
   Action spell;
 
   // Action potion = findMostExpensiveBrew(potions);
   Action potion = simulateBrew([...myInventory], [...spells], [...potions], spaceholder + "--");
-  //Action potion = simulateAllBrew([...myInventory], [...spells], [...potions], spaceholder + "--");
+  // Action potion = simulateAllBrew([...myInventory], [...spells], [...potions], spaceholder + "--");
   // }
   String text;
   if (potion != null) {
@@ -1284,7 +1284,7 @@ String findSpellForPotion(List potions, List myInventory, List spells, List opSp
       if (spell != null) {
         dxt("${spaceholder} REAL spell ${spell.delta}");
         text = "CAST ${spell.id} ${canSpellXTime(myInventory, spell, spaceholder + "--")}";
-        // text = "CAST ${spell.id} 1";
+        text = "CAST ${spell.id} 1";
       }
     }
   }
@@ -1306,7 +1306,7 @@ List getPossibleSpellsForInventory(List spells, List inventory, Action potion, S
     Action spell = spells[i];
     dxt("${spaceholder}exist spell ${spell.delta}");
     // if (spell.isSaveToCastWithoutDelta(inventory, spaceholder + "--") && spell.isSafeToCastForPotion(spell, inventory, spaceholder + "--")) {
-    if(spell.isSaveToCastWithoutDelta(inventory, spaceholder + "--") ){
+      if(spell.isSaveToCastWithoutDelta(inventory, spaceholder + "--") ){
       // dxt("${spaceholder}     spell ${spell.delta} ${spell.getDeltaSumWithPotionAndInventory(potion, inventory, spaceholder+"--")}");
       dxt("");
       dxt("${spaceholder}valid spell ${spell.delta}");
@@ -1354,18 +1354,18 @@ Action findBestSpellToGetCloser(List spells, Action potion, List inventory, Stri
   }
   if (targetSpellSum == 0) {
     //BACKUP ONLY AFTER NOTHING WAS FOUND
-    // for (int i = 0; i < spells.length; ++i) {
-    //   Action spell = spells[i];
-    //   List missingIngredients = potion.findMissingIngredients(inventory, spaceholder + "--");
-    //   num tmpSpellSum = spell.getDeltaSumWithPotionAndInventory(potion, inventory, spaceholder + "--");
-    //   num tmpMissingSum = getDeltaSum(missingIngredients);
-    //   if (tmpMissingSum > targetMissingSum || tmpMissingSum == targetMissingSum && tmpSpellSum > targetSpellSum) {
-    //     dxt("${spaceholder}updateTargetSpell-----${spell.delta} tmpSpellSum $tmpSpellSum");
-    //     targetSpell = spell;
-    //     targetSpellSum = tmpSpellSum;
-    //     targetMissingSum = tmpMissingSum;
-    //   }
-    // }
+    for (int i = 0; i < spells.length; ++i) {
+      Action spell = spells[i];
+      List missingIngredients = potion.findMissingIngredients(inventory, spaceholder + "--");
+      num tmpSpellSum = spell.getDeltaSumWithPotionAndInventory(potion, inventory, spaceholder + "--");
+      num tmpMissingSum = getDeltaSum(missingIngredients);
+      if (tmpMissingSum > targetMissingSum || tmpMissingSum == targetMissingSum && tmpSpellSum > targetSpellSum) {
+        dxt("${spaceholder}updateTargetSpell-----${spell.delta} tmpSpellSum $tmpSpellSum");
+        targetSpell = spell;
+        targetSpellSum = tmpSpellSum;
+        targetMissingSum = tmpMissingSum;
+      }
+    }
   }
   return targetSpell;
 }
